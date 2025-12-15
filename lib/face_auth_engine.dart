@@ -1,5 +1,6 @@
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-}
+library;
+
+// Export public API
+export 'src/face_auth_engine_impl.dart';
+export 'src/face_config.dart';
+export 'src/models/face_embedding.dart';
