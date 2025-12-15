@@ -151,7 +151,13 @@ class FaceAuthEngine {
     for (final personId in enrolled) {
       final embedding = _enrollmentManager.buildFinalEmbedding(personId);
       if (embedding != null) {
-        embeddings.add(FaceEmbedding(id: personId, embedding: embedding));
+        embeddings.add(
+          FaceEmbedding(
+            personId: personId,
+            embedding: embedding,
+            version: '1.0',
+          ),
+        );
       }
     }
 

@@ -6,25 +6,37 @@ import 'dart:typed_data';
 /// Apps are responsible for persisting this data.
 class FaceEmbedding {
   /// Unique identifier for the person (e.g., name, user ID)
-  final String id;
+  final String personId;
 
   /// 192-dimensional L2-normalized embedding vector
   final Float32List embedding;
 
-  const FaceEmbedding({required this.id, required this.embedding});
+  /// Version of the embedding model
+  final String version;
+
+  const FaceEmbedding({
+    required this.personId,
+    required this.embedding,
+    required this.version,
+  });
 
   /// Convert to JSON for external persistence
   Map<String, dynamic> toJson() {
-    return {'id': id, 'embedding': embedding.toList()};
+    return {
+      'personId': personId,
+      'embedding': embedding.toList(),
+      'version': version,
+    };
   }
 
   /// Create from JSON
   factory FaceEmbedding.fromJson(Map<String, dynamic> json) {
     return FaceEmbedding(
-      id: json['id'] as String,
+      personId: json['personId'] as String,
       embedding: Float32List.fromList(
         (json['embedding'] as List).cast<double>(),
       ),
+      version: json['version'] as String,
     );
   }
 
@@ -38,17 +50,20 @@ class FaceEmbedding {
 
   @override
   String toString() =>
-      'FaceEmbedding(id: $id, embedding: ${embedding.length}D)';
+      'FaceEmbedding(personId: $personId, embedding: ${embedding.length}D, version: $version)';
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other is! FaceEmbedding) return false;
-    return id == other.id && _embeddingsEqual(embedding, other.embedding);
+    return personId == other.personId &&
+        _embeddingsEqual(embedding, other.embedding) &&
+        version == other.version;
   }
 
   @override
-  int get hashCode => id.hashCode ^ embedding.length.hashCode;
+  int get hashCode =>
+      personId.hashCode ^ embedding.length.hashCode ^ version.hashCode;
 
   bool _embeddingsEqual(Float32List a, Float32List b) {
     if (a.length != b.length) return false;

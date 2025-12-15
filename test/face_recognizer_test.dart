@@ -22,7 +22,9 @@ void main() {
 
     test('should recognize identical embedding', () {
       final emb = _createNormalizedEmbedding([0.6, 0.0, 0.8]);
-      final enrolled = [FaceEmbedding(id: 'person1', embedding: emb)];
+      final enrolled = [
+        FaceEmbedding(personId: 'person1', embedding: emb, version: '1.0'),
+      ];
 
       final result = recognizer.recognize(emb, enrolled, 1.0);
 
@@ -32,7 +34,9 @@ void main() {
     test('should recognize very similar embedding', () {
       final emb1 = _createNormalizedEmbedding([0.6, 0.0, 0.8]);
       final emb2 = _createNormalizedEmbedding([0.61, 0.01, 0.79]);
-      final enrolled = [FaceEmbedding(id: 'person1', embedding: emb1)];
+      final enrolled = [
+        FaceEmbedding(personId: 'person1', embedding: emb1, version: '1.0'),
+      ];
 
       final result = recognizer.recognize(emb2, enrolled, 1.0);
 
@@ -42,7 +46,9 @@ void main() {
     test('should return null for dissimilar embedding', () {
       final emb1 = _createNormalizedEmbedding([1.0, 0.0, 0.0]);
       final emb2 = _createNormalizedEmbedding([0.0, 1.0, 0.0]);
-      final enrolled = [FaceEmbedding(id: 'person1', embedding: emb1)];
+      final enrolled = [
+        FaceEmbedding(personId: 'person1', embedding: emb1, version: '1.0'),
+      ];
 
       final result = recognizer.recognize(emb2, enrolled, 1.0);
 
@@ -54,8 +60,8 @@ void main() {
       final emb1 = _createNormalizedEmbedding([0.7, 0.0, 0.71]); // Further
       final emb2 = _createNormalizedEmbedding([0.61, 0.01, 0.79]); // Closer
       final enrolled = [
-        FaceEmbedding(id: 'person1', embedding: emb1),
-        FaceEmbedding(id: 'person2', embedding: emb2),
+        FaceEmbedding(personId: 'person1', embedding: emb1, version: '1.0'),
+        FaceEmbedding(personId: 'person2', embedding: emb2, version: '1.0'),
       ];
 
       final result = recognizer.recognize(query, enrolled, 1.0);
@@ -66,7 +72,9 @@ void main() {
     test('should respect threshold parameter', () {
       final emb1 = _createNormalizedEmbedding([0.6, 0.0, 0.8]);
       final emb2 = _createNormalizedEmbedding([0.55, 0.1, 0.75]);
-      final enrolled = [FaceEmbedding(id: 'person1', embedding: emb1)];
+      final enrolled = [
+        FaceEmbedding(personId: 'person1', embedding: emb1, version: '1.0'),
+      ];
 
       // With loose threshold
       final result1 = recognizer.recognize(emb2, enrolled, 1.0);
@@ -106,7 +114,9 @@ void main() {
       // For normalized vectors pointing in same direction, distance = 0
       final emb1 = _createNormalizedEmbedding([1.0, 0.0, 0.0]);
       final emb2 = _createNormalizedEmbedding([1.0, 0.0, 0.0]);
-      final enrolled = [FaceEmbedding(id: 'test', embedding: emb1)];
+      final enrolled = [
+        FaceEmbedding(personId: 'test', embedding: emb1, version: '1.0'),
+      ];
 
       final result = recognizer.recognize(emb2, enrolled, 0.001);
       expect(result, 'test'); // Should match with very strict threshold
@@ -126,7 +136,9 @@ void main() {
       emb1 = _normalize(emb1);
       emb2 = _normalize(emb2);
 
-      final enrolled = [FaceEmbedding(id: 'person1', embedding: emb1)];
+      final enrolled = [
+        FaceEmbedding(personId: 'person1', embedding: emb1, version: '1.0'),
+      ];
       final result = recognizer.recognize(emb2, enrolled, 1.0);
 
       expect(result, 'person1');

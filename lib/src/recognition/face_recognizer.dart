@@ -25,7 +25,7 @@ class FaceRecognizer {
 
       if (distance < minDistance && distance < threshold) {
         minDistance = distance;
-        bestMatch = face.id;
+        bestMatch = face.personId;
       }
     }
 
