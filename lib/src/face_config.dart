@@ -6,10 +6,6 @@ class FaceConfig {
   /// Default: 1.0
   final double recognitionThreshold;
 
-  /// Number of samples required for enrollment.
-  /// Default: 5
-  final int requiredEnrollmentSamples;
-
   /// Minimum face size (width/height) in pixels.
   /// Default: 80
   final int minFaceSize;
@@ -20,7 +16,6 @@ class FaceConfig {
 
   const FaceConfig({
     this.recognitionThreshold = 1.0,
-    this.requiredEnrollmentSamples = 5,
     this.minFaceSize = 80,
     this.maxRollAngle = 15.0,
   });
@@ -32,7 +27,6 @@ class FaceConfig {
   String toString() {
     return 'FaceConfig('
         'threshold: $recognitionThreshold, '
-        'samples: $requiredEnrollmentSamples, '
         'minSize: $minFaceSize, '
         'maxRoll: $maxRollAngle)';
   }

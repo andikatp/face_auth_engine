@@ -8,9 +8,7 @@ import 'package:tflite_flutter/tflite_flutter.dart';
 
 import 'alignment/face_alignment_helper.dart';
 import 'detection/face_detector_helper.dart';
-import 'enrollment/enrollment_manager.dart';
 import 'face_config.dart';
-import 'models/face_embedding.dart';
 import 'recognition/face_recognizer.dart';
 
 /// Main facade for face authentication engine.
@@ -25,13 +23,10 @@ class FaceAuthEngine {
 
   Interpreter? _interpreter;
   FaceDetectorHelper? _faceDetector;
-  late EnrollmentManager _enrollmentManager;
   late FaceRecognizer _recognizer;
-  List<FaceEmbedding> _importedEmbeddings = [];
 
   FaceAuthEngine({FaceConfig? config})
     : config = config ?? FaceConfig.defaultConfig {
-    _enrollmentManager = EnrollmentManager(config: this.config);
     _recognizer = FaceRecognizer();
     _initializeAsync();
   }
@@ -72,7 +67,7 @@ class FaceAuthEngine {
   /// - Multiple faces detected
   /// - Face quality too low
   /// - Model not initialized
-  Future<Float32List> extractEmbedding(File imageFile) async {
+  Future<Float32List> _extractEmbedding(File imageFile) async {
     // Ensure model is loaded
     if (_interpreter == null) {
       log('Waiting for model to load...');
@@ -120,82 +115,36 @@ class FaceAuthEngine {
     return normalizedEmbedding;
   }
 
-  /// Enroll a face sample for a person.
-  /// Multiple samples are required (configured in FaceConfig).
-  void enrollSample(String personId, Float32List embedding) {
-    _enrollmentManager.addSample(personId, embedding);
+  /// Extract embedding from an image file path.
+  Future<List<double>> convertToEmbedded(String imagePath) async {
+    final file = File(imagePath);
+    final embedding = await _extractEmbedding(file);
+    return embedding.toList();
   }
 
-  /// Check if enrollment is complete for a person.
-  bool isEnrollmentComplete(String personId) {
-    return _enrollmentManager.isEnrollmentComplete(personId);
-  }
-
-  /// Get current sample count for a person.
-  int getEnrollmentSampleCount(String personId) {
-    return _enrollmentManager.getSampleCount(personId);
-  }
-
-  /// Build final averaged and normalized embedding for a person.
-  /// Returns null if enrollment is not complete.
-  Float32List? buildFinalEmbedding(String personId) {
-    return _enrollmentManager.buildFinalEmbedding(personId);
-  }
-
-  /// Export all completed enrollments as FaceEmbedding objects.
-  /// These can be persisted by the app and imported later.
-  List<FaceEmbedding> exportAveragedEmbeddings() {
-    final enrolled = _enrollmentManager.getEnrolledPersons();
-    final embeddings = <FaceEmbedding>[];
-
-    for (final personId in enrolled) {
-      final embedding = _enrollmentManager.buildFinalEmbedding(personId);
-      if (embedding != null) {
-        embeddings.add(
-          FaceEmbedding(
-            personId: personId,
-            embedding: embedding,
-            version: '1.0',
-          ),
-        );
-      }
+  /// Extract embeddings from a list of image file paths.
+  /// Returns a list of embeddings (List\<double\>) for each valid image.
+  Future<List<List<double>>> convertFromListToEmbedded(
+    List<String> imagePaths,
+  ) async {
+    final embeddings = <List<double>>[];
+    for (final path in imagePaths) {
+      final embedding = await convertToEmbedded(path);
+      embeddings.add(embedding);
     }
-
     return embeddings;
   }
 
-  /// Import face embeddings for recognition.
-  /// These embeddings will be used for subsequent recognize() calls.
-  void importEmbeddings(List<FaceEmbedding> embeddings) {
-    _importedEmbeddings = embeddings;
-  }
+  /// Check if the person in the image at [imagePath] matches the [knownEmbedding].
+  Future<bool> isThePersonTheSame(
+    String imagePath,
+    List<double> knownEmbedding,
+  ) async {
+    final newEmbeddingList = await convertToEmbedded(imagePath);
+    final newEmbedding = Float32List.fromList(newEmbeddingList);
+    final known = Float32List.fromList(knownEmbedding);
 
-  /// Recognize a face from a query embedding.
-  /// Returns the person ID if a match is found, null otherwise.
-  ///
-  /// Uses the embeddings imported via importEmbeddings().
-  String? recognize(Float32List query) {
-    return _recognizer.recognize(
-      query,
-      _importedEmbeddings,
-      config.recognitionThreshold,
-    );
-  }
-
-  /// Get list of enrolled person IDs (from enrollment manager).
-  List<String> getEnrolledPersons() {
-    return _enrollmentManager.getEnrolledPersons();
-  }
-
-  /// Clear enrollment data for a specific person.
-  void clearPerson(String personId) {
-    _enrollmentManager.clearPerson(personId);
-  }
-
-  /// Clear all enrollment data.
-  void clear() {
-    _enrollmentManager.clear();
-    _importedEmbeddings.clear();
+    return _recognizer.verify(newEmbedding, known, config.recognitionThreshold);
   }
 
   /// Dispose resources.

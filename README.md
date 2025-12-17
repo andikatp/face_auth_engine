@@ -7,17 +7,12 @@ A stateless face recognition engine for Flutter with ML Kit detection, landmark 
 - 🔍 **Face Detection**: Google ML Kit for robust face detection
 - 📐 **Face Alignment**: Landmark-based similarity transform alignment
 - 🧠 **Embedding Generation**: MobileFaceNet 192-dimensional embeddings
-- 📊 **Enrollment**: Multi-sample enrollment with averaging
-- ✅ **Recognition**: L2 distance-based matching
-- 🎯 **Stateless Design**: No internal persistence, app controls storage
+- ✅ **Verification**: 1:1 Face comparison
+- 🎯 **Stateless Design**: Purely functional API, no internal state management
 
 ## Important Design Principle
 
-This package **does not store any face data**. All persistence decisions are delegated to your application. You must:
-
-1. Receive `FaceEmbedding` objects from enrollment
-2. Persist them using your preferred method (SQLite, SharedPreferences, Firebase, etc.)
-3. Load and import embeddings before recognition
+This package **does not store any face data**. It provides tools to extract embeddings and compare them.
 
 ## Installation
 
@@ -66,109 +61,71 @@ import 'package:face_auth_engine/face_auth_engine.dart';
 final engine = FaceAuthEngine(
   config: FaceConfig(
     recognitionThreshold: 1.0,
-    requiredEnrollmentSamples: 5,
   ),
 );
 ```
 
-### 2. Enroll a Person
+### 2. Extract Embedding
 
 ```dart
 try {
-  // Pick 5 images of the same person
-  for (int i = 0; i < 5; i++) {
-    final imageFile = await pickImage(); // Your image picker
-    final embedding = await engine.extractEmbedding(imageFile);
-    engine.enrollSample('person_id', embedding);
-
-    print('Sample ${i + 1}/5 enrolled');
-  }
-
-  // Build final averaged embedding
-  final finalEmbedding = engine.buildFinalEmbedding('person_id');
-
-  if (finalEmbedding != null) {
-    // Create FaceEmbedding and persist it
-    final faceEmbedding = FaceEmbedding(
-      id: 'person_id',
-      embedding: finalEmbedding,
-    );
-
-    // Save to your database
-    await yourDatabase.saveFaceEmbedding(faceEmbedding.toJson());
-  }
+  // Convert image file path to embedding
+  final List<double> embedding = await engine.convertToEmbedded('/path/to/image.jpg');
+  
+  // Persist "embedding" to your database (e.g. as JSON or blob)
 } catch (e) {
-  print('Enrollment error: $e');
+  print('Error: $e'); // e.g. No face detected
 }
 ```
 
-### 3. Recognize a Face
+### 3. Verify Person (1:1 Verification)
 
 ```dart
 try {
-  // Load embeddings from your database
-  final storedEmbeddings = await yourDatabase.loadAllFaceEmbeddings();
-  final faceEmbeddings = storedEmbeddings
-      .map((json) => FaceEmbedding.fromJson(json))
-      .toList();
+  // Check if the person in the new image matches a known embedding
+  bool isSamePerson = await engine.isThePersonTheSame(
+    '/path/to/new_image.jpg',
+    knownEmbedding, // List<double> you stored directly
+  );
 
-  // Import embeddings into engine
-  engine.importEmbeddings(faceEmbeddings);
-
-  // Extract embedding from query image
-  final queryFile = await pickImage();
-  final queryEmbedding = await engine.extractEmbedding(queryFile);
-
-  // Recognize
-  final personId = engine.recognize(queryEmbedding);
-
-  if (personId != null) {
-    print('Recognized: $personId');
+  if (isSamePerson) {
+    print('Verified!');
   } else {
-    print('Unknown person');
+    print('Not the same person.');
   }
 } catch (e) {
-  print('Recognition error: $e');
+  print('Error: $e');
 }
+```
+
+### 4. Bulk Extraction
+
+```dart
+final paths = ['/path/1.jpg', '/path/2.jpg', '/path/3.jpg'];
+// Returns List<List<double>>
+final allEmbeddings = await engine.convertFromListToEmbedded(paths);
 ```
 
 ## API Reference
 
 ### FaceAuthEngine
 
-| Method                                  | Description                            |
-| --------------------------------------- | -------------------------------------- |
-| `extractEmbedding(File)`                | Extract face embedding from image file |
-| `enrollSample(String, Float32List)`     | Add enrollment sample for a person     |
-| `isEnrollmentComplete(String)`          | Check if enrollment is complete        |
-| `buildFinalEmbedding(String)`           | Get averaged embedding for person      |
-| `exportAveragedEmbeddings()`            | Export all enrolled embeddings         |
-| `importEmbeddings(List<FaceEmbedding>)` | Import embeddings for recognition      |
-| `recognize(Float32List)`                | Recognize face from embedding          |
-| `clear()`                               | Clear all enrollment data              |
-| `dispose()`                             | Release resources                      |
+| Method                                                  | Description                                                |
+| ------------------------------------------------------- | ---------------------------------------------------------- |
+| `convertToEmbedded(String path)`                        | Extract embedding from image file path                     |
+| `convertFromListToEmbedded(List<String> paths)`         | Extract embeddings from multiple image paths               |
+| `isThePersonTheSame(String path, List<double> known)`   | Verify if image matches known embedding                    |
+| `dispose()`                                             | Release resources                                          |
 
 ### FaceConfig
 
 ```dart
 const FaceConfig({
   double recognitionThreshold = 1.0,  // Lower = stricter
-  int requiredEnrollmentSamples = 5,
+  int requiredEnrollmentSamples = 5,  // (Unused in stateless mode)
   int minFaceSize = 80,
   double maxRollAngle = 15.0,
 });
-```
-
-### FaceEmbedding
-
-```dart
-class FaceEmbedding {
-  final String id;
-  final Float32List embedding;
-
-  Map<String, dynamic> toJson();
-  factory FaceEmbedding.fromJson(Map<String, dynamic>);
-}
 ```
 
 ## Error Handling
@@ -179,7 +136,6 @@ The package throws exceptions for:
 - Multiple faces detected
 - Missing facial landmarks
 - Face quality too low (size, angle)
-- Inconsistent enrollment samples
 
 Always wrap calls in try-catch blocks.
 

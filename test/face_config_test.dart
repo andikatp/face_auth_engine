@@ -3,36 +3,34 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('FaceConfig', () {
-    test('should use default values when not specified', () {
+    test('should use default values', () {
       const config = FaceConfig();
-
       expect(config.recognitionThreshold, 1.0);
-      expect(config.requiredEnrollmentSamples, 5);
       expect(config.minFaceSize, 80);
       expect(config.maxRollAngle, 15.0);
     });
 
-    test('should allow custom values', () {
+    test('should respect custom values', () {
       const config = FaceConfig(
-        recognitionThreshold: 0.8,
-        requiredEnrollmentSamples: 3,
+        recognitionThreshold: 0.5,
         minFaceSize: 100,
-        maxRollAngle: 20.0,
+        maxRollAngle: 10.0,
       );
-
-      expect(config.recognitionThreshold, 0.8);
-      expect(config.requiredEnrollmentSamples, 3);
+      expect(config.recognitionThreshold, 0.5);
       expect(config.minFaceSize, 100);
-      expect(config.maxRollAngle, 20.0);
+      expect(config.maxRollAngle, 10.0);
     });
 
-    test('should provide default config constant', () {
-      const config = FaceConfig.defaultConfig;
+    test('should have correct check semantics', () {
+      const config1 = FaceConfig(recognitionThreshold: 1.0);
+      const config2 = FaceConfig(recognitionThreshold: 1.0);
+      expect(config1, config2);
+    });
 
-      expect(config.recognitionThreshold, 1.0);
-      expect(config.requiredEnrollmentSamples, 5);
-      expect(config.minFaceSize, 80);
-      expect(config.maxRollAngle, 15.0);
+    test('should provide string representation', () {
+      const config = FaceConfig();
+      expect(config.toString(), contains('threshold: 1.0'));
+      expect(config.toString(), contains('minSize: 80'));
     });
 
     test('should be const constructible', () {

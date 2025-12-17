@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:face_auth_engine/face_auth_engine.dart';
 import 'package:face_auth_engine/src/recognition/face_recognizer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -13,135 +12,58 @@ void main() {
       recognizer = FaceRecognizer();
     });
 
-    test('should return null for empty enrolled list', () {
-      final query = _createNormalizedEmbedding([0.1, 0.2, 0.3]);
-      final result = recognizer.recognize(query, [], 1.0);
-
-      expect(result, isNull);
-    });
-
-    test('should recognize identical embedding', () {
+    test('verify should return true for identical embeddings', () {
       final emb = _createNormalizedEmbedding([0.6, 0.0, 0.8]);
-      final enrolled = [
-        FaceEmbedding(personId: 'person1', embedding: emb, version: '1.0'),
-      ];
-
-      final result = recognizer.recognize(emb, enrolled, 1.0);
-
-      expect(result, 'person1');
+      final result = recognizer.verify(emb, emb, 1.0);
+      expect(result, isTrue);
     });
 
-    test('should recognize very similar embedding', () {
+    test('verify should return true for very similar embeddings', () {
       final emb1 = _createNormalizedEmbedding([0.6, 0.0, 0.8]);
       final emb2 = _createNormalizedEmbedding([0.61, 0.01, 0.79]);
-      final enrolled = [
-        FaceEmbedding(personId: 'person1', embedding: emb1, version: '1.0'),
-      ];
-
-      final result = recognizer.recognize(emb2, enrolled, 1.0);
-
-      expect(result, 'person1');
+      final result = recognizer.verify(emb1, emb2, 1.0);
+      expect(result, isTrue);
     });
 
-    test('should return null for dissimilar embedding', () {
+    test('verify should return false for dissimilar embeddings', () {
       final emb1 = _createNormalizedEmbedding([1.0, 0.0, 0.0]);
       final emb2 = _createNormalizedEmbedding([0.0, 1.0, 0.0]);
-      final enrolled = [
-        FaceEmbedding(personId: 'person1', embedding: emb1, version: '1.0'),
-      ];
-
-      final result = recognizer.recognize(emb2, enrolled, 1.0);
-
-      expect(result, isNull);
+      final result = recognizer.verify(emb1, emb2, 1.0);
+      expect(result, isFalse);
     });
 
-    test('should select closest match among multiple persons', () {
-      final query = _createNormalizedEmbedding([0.6, 0.0, 0.8]);
-      final emb1 = _createNormalizedEmbedding([0.7, 0.0, 0.71]); // Further
-      final emb2 = _createNormalizedEmbedding([0.61, 0.01, 0.79]); // Closer
-      final enrolled = [
-        FaceEmbedding(personId: 'person1', embedding: emb1, version: '1.0'),
-        FaceEmbedding(personId: 'person2', embedding: emb2, version: '1.0'),
-      ];
-
-      final result = recognizer.recognize(query, enrolled, 1.0);
-
-      expect(result, 'person2');
-    });
-
-    test('should respect threshold parameter', () {
+    test('verify should respect threshold parameter', () {
       final emb1 = _createNormalizedEmbedding([0.6, 0.0, 0.8]);
       final emb2 = _createNormalizedEmbedding([0.55, 0.1, 0.75]);
-      final enrolled = [
-        FaceEmbedding(personId: 'person1', embedding: emb1, version: '1.0'),
-      ];
 
       // With loose threshold
-      final result1 = recognizer.recognize(emb2, enrolled, 1.0);
-      expect(result1, 'person1');
+      expect(recognizer.verify(emb1, emb2, 1.0), isTrue);
 
       // With strict threshold
-      final result2 = recognizer.recognize(emb2, enrolled, 0.05);
-      expect(result2, isNull);
-    });
-
-    test('should average multiple embeddings correctly', () {
-      final emb1 = _createNormalizedEmbedding([0.6, 0.0, 0.8]);
-      final emb2 = _createNormalizedEmbedding([0.8, 0.0, 0.6]);
-      final embeddings = [emb1, emb2];
-
-      final averaged = recognizer.averageEmbeddings(embeddings);
-
-      expect(averaged.length, 3);
-
-      // Verify L2 normalization
-      final norm = _calculateNorm(averaged);
-      expect(norm, closeTo(1.0, 0.001));
-
-      // Verify it's between the two inputs
-      expect(averaged[0], greaterThan(0.6));
-      expect(averaged[0], lessThan(0.8));
-    });
-
-    test('should throw on averaging empty list', () {
-      expect(
-        () => recognizer.averageEmbeddings([]),
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(recognizer.verify(emb1, emb2, 0.05), isFalse);
     });
 
     test('should calculate L2 distance correctly', () {
-      // For normalized vectors pointing in same direction, distance = 0
+      // Distance between (1,0,0) and (1,0,0) is 0
       final emb1 = _createNormalizedEmbedding([1.0, 0.0, 0.0]);
       final emb2 = _createNormalizedEmbedding([1.0, 0.0, 0.0]);
-      final enrolled = [
-        FaceEmbedding(personId: 'test', embedding: emb1, version: '1.0'),
-      ];
 
-      final result = recognizer.recognize(emb2, enrolled, 0.001);
-      expect(result, 'test'); // Should match with very strict threshold
+      expect(recognizer.verify(emb1, emb2, 0.001), isTrue);
     });
 
     test('should handle 192-dimensional embeddings', () {
       var emb1 = Float32List(192);
       var emb2 = Float32List(192);
 
-      // Fill with pseudo-random normalized values
       for (int i = 0; i < 192; i++) {
         emb1[i] = math.sin(i * 0.1);
         emb2[i] = math.sin(i * 0.1);
       }
 
-      // Normalize
       emb1 = _normalize(emb1);
       emb2 = _normalize(emb2);
 
-      final enrolled = [
-        FaceEmbedding(personId: 'person1', embedding: emb1, version: '1.0'),
-      ];
-      final result = recognizer.recognize(emb2, enrolled, 1.0);
-
-      expect(result, 'person1');
+      expect(recognizer.verify(emb1, emb2, 1.0), isTrue);
     });
   });
 }
