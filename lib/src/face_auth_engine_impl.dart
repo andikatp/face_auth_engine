@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
@@ -44,11 +44,11 @@ class FaceAuthEngine {
       _interpreter = await Interpreter.fromAsset(_modelPath);
       final inputShape = _interpreter!.getInputTensor(0).shape;
       final outputShape = _interpreter!.getOutputTensor(0).shape;
-      log('MobileFaceNet model loaded successfully');
-      log('Input shape: $inputShape');
-      log('Output shape: $outputShape');
+      developer.log('MobileFaceNet model loaded successfully');
+      developer.log('Input shape: $inputShape');
+      developer.log('Output shape: $outputShape');
     } catch (e) {
-      log('Error loading model: $e');
+      developer.log('Error loading model: $e');
       rethrow;
     }
   }
@@ -71,7 +71,7 @@ class FaceAuthEngine {
   Future<Float32List> _extractEmbedding(File imageFile) async {
     // Ensure model is loaded
     if (_interpreter == null) {
-      log('Waiting for model to load...');
+      developer.log('Waiting for model to load...');
       await _loadModel();
     }
 
@@ -93,7 +93,7 @@ class FaceAuthEngine {
     }
 
     // Step 3: Align face using detected landmarks
-    log('Aligning face using detected landmarks...');
+    developer.log('Aligning face using detected landmarks...');
     final alignedFace = FaceAlignmentHelper.alignFace(
       originalImage,
       faceResult.landmarks,
@@ -108,7 +108,7 @@ class FaceAuthEngine {
     // Step 6: L2-normalize embedding
     final normalizedEmbedding = _l2Normalize(embedding);
 
-    log(
+    developer.log(
       'Generated embedding, first 5 values: '
       '${normalizedEmbedding.sublist(0, 5)}',
     );
@@ -248,7 +248,9 @@ class FaceAuthEngine {
     // Face size check
     if (boundingBox.width < config.minFaceSize ||
         boundingBox.height < config.minFaceSize) {
-      log('Face too small: ${boundingBox.width}x${boundingBox.height}');
+      developer.log(
+        'Face too small: ${boundingBox.width}x${boundingBox.height}',
+      );
       return false;
     }
 
@@ -261,7 +263,7 @@ class FaceAuthEngine {
     final rollAngle = math.atan2(dy, dx) * 180 / math.pi;
 
     if (rollAngle.abs() > config.maxRollAngle) {
-      log('Head roll too large: ${rollAngle.toStringAsFixed(1)}°');
+      developer.log('Head roll too large: ${rollAngle.toStringAsFixed(1)}°');
       return false;
     }
 

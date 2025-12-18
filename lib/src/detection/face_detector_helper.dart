@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:ui';
 
@@ -77,13 +77,13 @@ class FaceDetectorHelper {
       );
     }
 
-    log('Face detected successfully with all landmarks');
-    log('Bounding box: ${face.boundingBox}');
-    log('Left eye: ${leftEye!.position}');
-    log('Right eye: ${rightEye!.position}');
-    log('Nose: ${noseTip!.position}');
-    log('Left mouth: ${leftMouth!.position}');
-    log('Right mouth: ${rightMouth!.position}');
+    developer.log('Face detected successfully with all landmarks');
+    developer.log('Bounding box: ${face.boundingBox}');
+    developer.log('Left eye: ${leftEye!.position}');
+    developer.log('Right eye: ${rightEye!.position}');
+    developer.log('Nose: ${noseTip!.position}');
+    developer.log('Left mouth: ${leftMouth!.position}');
+    developer.log('Right mouth: ${rightMouth!.position}');
 
     return FaceDetectionResult(
       landmarks: [leftEye, rightEye, noseTip, leftMouth, rightMouth],

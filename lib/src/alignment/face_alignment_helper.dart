@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'dart:developer' as developer;
 
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:image/image.dart' as img;
@@ -25,8 +25,8 @@ class FaceAlignmentHelper {
       detectedLandmarks,
     );
 
-    log('Source landmarks: $sourceLandmarks');
-    log('Canonical landmarks: $canonicalLandmarks');
+    developer.log('Source landmarks: $sourceLandmarks');
+    developer.log('Canonical landmarks: $canonicalLandmarks');
 
     // Compute similarity transform matrix
     final transform = _computeSimilarityTransform(
@@ -34,7 +34,7 @@ class FaceAlignmentHelper {
       canonicalLandmarks,
     );
 
-    log('Transform matrix: $transform');
+    developer.log('Transform matrix: $transform');
 
     // Apply transformation to create aligned face
     final alignedImage = _applyTransform(originalImage, transform, 112, 112);
