@@ -19,7 +19,8 @@ import 'recognition/face_recognizer.dart';
 /// is delegated to the consuming application.
 class FaceAuthEngine {
   final FaceConfig config;
-  final String _modelPath = 'assets/models/mobilefacenet.tflite';
+  final String _modelPath =
+      'packages/face_auth_engine/assets/models/mobilefacenet.tflite';
 
   Interpreter? _interpreter;
   FaceDetectorHelper? _faceDetector;
