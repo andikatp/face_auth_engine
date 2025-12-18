@@ -115,6 +115,8 @@ final allEmbeddings = await engine.convertFromListToEmbedded(paths);
 | `convertToEmbedded(String path)`                        | Extract embedding from image file path                     |
 | `convertFromListToEmbedded(List<String> paths)`         | Extract embeddings from multiple image paths               |
 | `isThePersonTheSame(String path, List<double> known)`   | Verify if image matches known embedding                    |
+| `matchFaceAgainstList(String path, List<List<double>>)` | Verify if image matches any known embedding in a list      |
+| `compareFaces(String path1, String path2)`              | Verify if two images belong to the same person             |
 | `dispose()`                                             | Release resources                                          |
 
 ### FaceConfig

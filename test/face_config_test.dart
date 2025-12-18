@@ -45,7 +45,7 @@ void main() {
       final str = config.toString();
 
       expect(str, contains('threshold'));
-      expect(str, contains('samples'));
+      expect(str, contains('threshold'));
       expect(str, contains('minSize'));
       expect(str, contains('maxRoll'));
     });

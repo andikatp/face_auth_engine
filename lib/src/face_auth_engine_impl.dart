@@ -147,6 +147,44 @@ class FaceAuthEngine {
     return _recognizer.verify(newEmbedding, known, config.recognitionThreshold);
   }
 
+  /// Check if the person in the image at [imagePath] matches any of the [knownEmbeddings].
+  /// Returns true if any of the known embeddings match the new image.
+  Future<bool> matchFaceAgainstList(
+    String imagePath,
+    List<List<double>> knownEmbeddings,
+  ) async {
+    final newEmbeddingList = await convertToEmbedded(imagePath);
+    final newEmbedding = Float32List.fromList(newEmbeddingList);
+
+    for (final knownList in knownEmbeddings) {
+      final known = Float32List.fromList(knownList);
+      if (_recognizer.verify(
+        newEmbedding,
+        known,
+        config.recognitionThreshold,
+      )) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Compare two faces directly from their image paths.
+  /// Returns true if they belong to the same person.
+  Future<bool> compareFaces(String imagePath1, String imagePath2) async {
+    final embedding1List = await convertToEmbedded(imagePath1);
+    final embedding2List = await convertToEmbedded(imagePath2);
+
+    final embedding1 = Float32List.fromList(embedding1List);
+    final embedding2 = Float32List.fromList(embedding2List);
+
+    return _recognizer.verify(
+      embedding1,
+      embedding2,
+      config.recognitionThreshold,
+    );
+  }
+
   /// Dispose resources.
   void dispose() {
     _interpreter?.close();
