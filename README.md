@@ -1,146 +1,182 @@
-# Face Auth Engine
+# face_auth_engine
 
-A stateless face recognition engine for Flutter with ML Kit detection, landmark alignment, and MobileFaceNet embeddings.
+Model: MobileFaceNet (Recognition) / MobileNetV2 (Liveness) | License: MIT
 
-## Features
+A stateless face authentication engine for Flutter, featuring 1:1 face verification and passive liveness detection.
 
-- 🔍 **Face Detection**: Google ML Kit for robust face detection
-- 📐 **Face Alignment**: Landmark-based similarity transform alignment
-- 🧠 **Embedding Generation**: MobileFaceNet 192-dimensional embeddings
-- ✅ **Verification**: 1:1 Face comparison
-- 🎯 **Stateless Design**: Purely functional API, no internal state management
+✨ **Features**
 
-## Important Design Principle
+- **Stateless Architecture** — pure functional API, no internal state
+- **Face Recognition** — MobileFaceNet embeddings (192-dim)
+- **Liveness Detection** — On-device anti-spoofing (MobileNetV2)
+- **Reliable Detection** — Uses Google ML Kit for face bounding boxes
+- **Precise Alignment** — Landmark-based similarity transformation
+- **Optimized Performance** — TFLite GPU delegation support
 
-This package **does not store any face data**. It provides tools to extract embeddings and compare them.
+🧠 **Model Information**
 
-## Installation
+**Face Recognition:**
 
-Add to your `pubspec.yaml`:
+- **Model**: MobileFaceNet
+- **Output**: 192-dimensional float vector (L2 normalized)
+- **Metric**: Euclidean distance / Cosine similarity
 
-```yaml
-dependencies:
-  face_auth_engine:
-    git:
-      url: https://github.com/<your-username>/face_auth_engine.git
-```
+**Liveness Detection:**
 
-## Requirements
+- **Model**: MobileNetV2 (based on open liveness research)
+- **Input**: 224x224 RGB
+- **Classes**:
+  - 0 = Real
+  - 1 = Spoof
 
-### 1. Add MobileFaceNet Model
+🚀 **Usage**
 
-Place the `mobilefacenet.tflite` model file in your app's `assets/models/` directory:
+### 1. Face Recognition
 
-```
-your_app/
-├── assets/
-│   └── models/
-│       └── mobilefacenet.tflite
-└── pubspec.yaml
-```
-
-Update your `pubspec.yaml`:
-
-```yaml
-flutter:
-  assets:
-    - assets/models/mobilefacenet.tflite
-```
-
-### 2. Configure ML Kit
-
-Follow [Google ML Kit Face Detection setup](https://pub.dev/packages/google_mlkit_face_detection) for your platform.
-
-## Quick Start
-
-### 1. Initialize Engine
+**Initialize Engine**
 
 ```dart
 import 'package:face_auth_engine/face_auth_engine.dart';
 
 final engine = FaceAuthEngine(
   config: FaceConfig(
-    recognitionThreshold: 1.0,
+    recognitionThreshold: 1.0, // Adjust stricter/looser
   ),
 );
 ```
 
-### 2. Extract Embedding
+**Extract Embedding**
 
 ```dart
 try {
   // Convert image file path to embedding
   final List<double> embedding = await engine.convertToEmbedded('/path/to/image.jpg');
-  
-  // Persist "embedding" to your database (e.g. as JSON or blob)
+
+  // Store 'embedding' in your database
 } catch (e) {
-  print('Error: $e'); // e.g. No face detected
+  print('Error: $e'); // e.g. No face detected, or multiple faces
 }
 ```
 
-### 3. Verify Person (1:1 Verification)
+**Verify Person (1:1)**
 
 ```dart
 try {
-  // Check if the person in the new image matches a known embedding
-  bool isSamePerson = await engine.isThePersonTheSame(
-    '/path/to/new_image.jpg',
-    knownEmbedding, // List<double> you stored directly
+  // Check if new image matches a known embedding
+  bool isSame = await engine.isThePersonTheSame(
+    '/path/to/check.jpg',
+    knownEmbedding, // List<double> from DB
   );
 
-  if (isSamePerson) {
-    print('Verified!');
-  } else {
-    print('Not the same person.');
-  }
+  print(isSame ? 'Verified!' : 'Not the same person');
 } catch (e) {
   print('Error: $e');
 }
 ```
 
-### 4. Bulk Extraction
+**Compare Two Images**
 
 ```dart
-final paths = ['/path/1.jpg', '/path/2.jpg', '/path/3.jpg'];
-// Returns List<List<double>>
-final allEmbeddings = await engine.convertFromListToEmbedded(paths);
+bool match = await engine.compareFaces(path1, path2);
 ```
 
-## API Reference
+### 2. Liveness Detection
 
-### FaceAuthEngine
-
-| Method                                                  | Description                                                |
-| ------------------------------------------------------- | ---------------------------------------------------------- |
-| `convertToEmbedded(String path)`                        | Extract embedding from image file path                     |
-| `convertFromListToEmbedded(List<String> paths)`         | Extract embeddings from multiple image paths               |
-| `isThePersonTheSame(String path, List<double> known)`   | Verify if image matches known embedding                    |
-| `matchFaceAgainstList(String path, List<List<double>>)` | Verify if image matches any known embedding in a list      |
-| `compareFaces(String path1, String path2)`              | Verify if two images belong to the same person             |
-| `dispose()`                                             | Release resources                                          |
-
-### FaceConfig
+**Initialize Detector**
 
 ```dart
-const FaceConfig({
-  double recognitionThreshold = 1.0,  // Lower = stricter
-  int requiredEnrollmentSamples = 5,  // (Unused in stateless mode)
-  int minFaceSize = 80,
-  double maxRollAngle = 15.0,
-});
+import 'package:face_auth_engine/face_auth_engine.dart';
+import 'package:image/image.dart' as imglib;
+
+late final LivenessDetector liveness;
+
+Future<void> initLiveness() async {
+  liveness = await LivenessDetector.create(
+    options: LivenessOptions(
+      useGpu: true,
+      options: 0.5, // Threshold
+    ),
+  );
+}
 ```
 
-## Error Handling
+**Analyze Face**
 
-The package throws exceptions for:
+```dart
+/// Option A: Pass a full image file (auto-detects & crops face)
+Future<void> checkLiveness(File imageFile) async {
+  try {
+    final result = await liveness.detectLiveness(imageFile);
 
-- No face detected
-- Multiple faces detected
-- Missing facial landmarks
-- Face quality too low (size, angle)
+    print("Live: ${result.isLive}");
+    print("Score: ${result.score}");
+    print("Laplacian: ${result.laplacian}");
+  } catch (e) {
+    print("Error: $e"); // e.g. "No face detected"
+  }
+}
 
-Always wrap calls in try-catch blocks.
+/// Option B: Pass a pre-cropped face image
+Future<void> checkLivenessCropped(imglib.Image faceCrop) async {
+  final result = await liveness.analyze(faceCrop);
+  // ...
+}
+```
 
-## License
+**Cleanup**
 
-MIT License
+```dart
+@override
+void dispose() {
+  engine.dispose();
+  liveness.dispose();
+  super.dispose();
+}
+```
+
+📊 **Output Example (Liveness)**
+
+```text
+Live: true
+Score: 0.98
+Laplacian: 8540.2
+Time: 45 ms
+```
+
+⚙️ **Configuration**
+
+**FaceConfig**
+
+```dart
+FaceConfig(
+  recognitionThreshold: 1.0,
+  minFaceSize: 80,
+  maxRollAngle: 15.0,
+)
+```
+
+**LivenessOptions**
+
+```dart
+LivenessOptions(
+  threshold: 0.5,       // Score required to be considered 'live'
+  laplacianThreshold: 5000, // Min clarity score
+  useGpu: true,
+)
+```
+
+❗ **Usage Notes**
+
+- **Liveness Input**: use `liveness.detectLiveness(file)` for full images (auto-crop), or `liveness.analyze(image)` if you already have a cropped face.
+- **Threading**: Liveness analysis runs on an Isolate to prevent UI jank.
+- **Security**: This package provides probabilistic estimations. Use as part of a broader security pipeline (e.g. combine with backend verification).
+
+🔐 **Disclaimer**
+
+This library provides estimation tools for utility and basic security. It should not be the sole line of defense for high-value financial applications. Evaluate accordance with your security requirements.
+
+🤝 **Acknowledgements**
+
+- TensorFlow Lite team
+- MobileFaceNet authors
+- Google ML Kit

@@ -1,5 +1,5 @@
 name: face_auth_engine
-description: "A stateless face recognition engine for Flutter with ML Kit detection, landmark alignment, and MobileFaceNet embeddings."
+description: "A stateless face authentication engine for Flutter with ML Kit detection, landmark alignment, MobileFaceNet embeddings, and liveness detection."
 version: 0.0.1
 homepage:
 
@@ -22,3 +22,4 @@ dev_dependencies:
 flutter:
   assets:
     - assets/models/mobilefacenet.tflite
+    - assets/models/model.tflite
