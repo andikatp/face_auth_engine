@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:image/image.dart' as img;
 
 class FaceDetectionResult {
   final List<FaceLandmark> landmarks;
@@ -35,7 +36,46 @@ class FaceDetectorHelper {
   /// - Required landmarks are missing
   Future<FaceDetectionResult> detectFace(File imageFile) async {
     final inputImage = InputImage.fromFile(imageFile);
-    final List<Face> faces = await _faceDetector.processImage(inputImage);
+    List<Face> faces = await _faceDetector.processImage(inputImage);
+
+    // FIX: iOS images often have orientation issues (EXIF rotation) that ML Kit
+    // might miss or handle poorly if the image is raw. If no face detected,
+    // try to "bake" the orientation and retry.
+    if (faces.isEmpty) {
+      developer.log(
+        'No face detected initially. Retrying with orientation fix...',
+      );
+      try {
+        final bytes = await imageFile.readAsBytes();
+        var image = img.decodeImage(bytes);
+
+        if (image != null) {
+          // Bake orientation ensures the pixels are physically rotated
+          // according to EXIF, and EXIF is reset.
+          image = img.bakeOrientation(image);
+
+          final tempDir = Directory.systemTemp;
+          final tempFile = File(
+            '${tempDir.path}/temp_face_detect_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          );
+
+          await tempFile.writeAsBytes(img.encodeJpg(image));
+
+          final inputImageRetry = InputImage.fromFile(tempFile);
+          faces = await _faceDetector.processImage(inputImageRetry);
+
+          developer.log('Retry result: ${faces.length} faces found.');
+
+          // Cleanup temp file
+          if (await tempFile.exists()) {
+            await tempFile.delete();
+          }
+        }
+      } catch (e) {
+        developer.log('Error during orientation fix retry: $e');
+        // Ignore and fall through to original empty check
+      }
+    }
 
     if (faces.isEmpty) {
       throw Exception(

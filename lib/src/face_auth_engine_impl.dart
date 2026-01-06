@@ -79,10 +79,12 @@ class FaceAuthEngine {
 
     // Read and decode image
     final imageBytes = await imageFile.readAsBytes();
-    final originalImage = img.decodeImage(imageBytes);
+    var originalImage = img.decodeImage(imageBytes);
     if (originalImage == null) {
       throw Exception('Failed to decode image');
     }
+    // Ensure image is upright (handles EXIF orientation)
+    originalImage = img.bakeOrientation(originalImage);
 
     // Step 1: Detect face and extract landmarks
     final faceResult = await _faceDetector!.detectFace(imageFile);

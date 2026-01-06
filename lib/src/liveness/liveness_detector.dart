@@ -63,8 +63,11 @@ class LivenessDetector {
 
     // 2. Decode full image
     final bytes = await imageFile.readAsBytes();
-    final fullImage = imglib.decodeImage(bytes);
+    var fullImage = imglib.decodeImage(bytes);
     if (fullImage == null) throw Exception("Could not decode image file");
+
+    // Ensure upright orientation so bounding box matches pixels
+    fullImage = imglib.bakeOrientation(fullImage);
 
     // 3. Crop face using bounding box from detection
     final box = faceResult.boundingBox;
