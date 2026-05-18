@@ -2,6 +2,8 @@ import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:face_auth_engine/face_auth_engine.dart';
+import 'lib/image_provider_impl.dart';
+import 'lib/mlkit_face_detector_provider.dart';
 
 /// Minimal example demonstrating Face Auth Engine usage.
 ///
@@ -12,7 +14,11 @@ void main() async {
   developer.log('=== Face Auth Engine Example ===\n');
 
   // 1. Initialize the engine
-  final engine = FaceAuthEngine(config: FaceConfig(recognitionThreshold: 1.0));
+  final engine = FaceAuthEngine(
+    faceDetector: MLKitFaceDetectorProvider(),
+    imageProvider: ImageProviderImpl(),
+    config: FaceConfig(recognitionThreshold: 1.0),
+  );
 
   try {
     // 2. Extract embedding from an image file path

@@ -1,7 +1,8 @@
 import 'dart:developer' as developer;
+import 'dart:typed_data';
 
-import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:image/image.dart' as img;
+import '../detection/face_detector_provider.dart';
+import '../image/face_image_provider.dart';
 
 class FaceAlignmentHelper {
   // Canonical 5-point landmark positions for MobileFaceNet (112x112 image)
@@ -16,8 +17,8 @@ class FaceAlignmentHelper {
 
   /// Aligns a face image using similarity transform based on detected landmarks
   /// Returns a 112x112 aligned face image ready for MobileFaceNet
-  static img.Image alignFace(
-    img.Image originalImage,
+  static FaceImageBuffer alignFace(
+    FaceImageBuffer originalImage,
     List<FaceLandmark> detectedLandmarks,
   ) {
     // Extract detected landmark positions
@@ -91,8 +92,8 @@ class FaceAlignmentHelper {
   }
 
   /// Applies similarity transform to image and returns aligned face
-  static img.Image _applyTransform(
-    img.Image src,
+  static FaceImageBuffer _applyTransform(
+    FaceImageBuffer src,
     List<double> transform,
     int width,
     int height,
@@ -102,8 +103,8 @@ class FaceAlignmentHelper {
     double tx = transform[2];
     double ty = transform[3];
 
-    // Create output image
-    final aligned = img.Image(width: width, height: height);
+    // Create output image buffer
+    final alignedPixels = Uint8List(width * height * 3);
 
     // Compute inverse transform to map from destination to source
     double det = a * a + b * b;
@@ -136,45 +137,59 @@ class FaceAlignmentHelper {
           double dx = srcX - x0;
           double dy = srcY - y0;
 
-          img.Pixel p00 = src.getPixel(x0, y0);
-          img.Pixel p10 = src.getPixel(x1, y0);
-          img.Pixel p01 = src.getPixel(x0, y1);
-          img.Pixel p11 = src.getPixel(x1, y1);
-
           int r = _interpolate(
-            p00.r.toInt(),
-            p10.r.toInt(),
-            p01.r.toInt(),
-            p11.r.toInt(),
+            src.getR(x0, y0),
+            src.getR(x1, y0),
+            src.getR(x0, y1),
+            src.getR(x1, y1),
             dx,
             dy,
           );
           int g = _interpolate(
-            p00.g.toInt(),
-            p10.g.toInt(),
-            p01.g.toInt(),
-            p11.g.toInt(),
+            src.getG(x0, y0),
+            src.getG(x1, y0),
+            src.getG(x0, y1),
+            src.getG(x1, y1),
             dx,
             dy,
           );
           int blue = _interpolate(
-            p00.b.toInt(),
-            p10.b.toInt(),
-            p01.b.toInt(),
-            p11.b.toInt(),
+            src.getB(x0, y0),
+            src.getB(x1, y0),
+            src.getB(x0, y1),
+            src.getB(x1, y1),
             dx,
             dy,
           );
 
-          aligned.setPixelRgb(x, y, r, g, blue);
+          _setPixel(alignedPixels, x, y, width, r, g, blue);
         } else {
           // Out of bounds - set to black
-          aligned.setPixelRgb(x, y, 0, 0, 0);
+          _setPixel(alignedPixels, x, y, width, 0, 0, 0);
         }
       }
     }
 
-    return aligned;
+    return FaceImageBuffer(
+      width: width,
+      height: height,
+      pixels: alignedPixels,
+    );
+  }
+
+  static void _setPixel(
+    Uint8List pixels,
+    int x,
+    int y,
+    int width,
+    int r,
+    int g,
+    int b,
+  ) {
+    final idx = (y * width + x) * 3;
+    pixels[idx] = r;
+    pixels[idx + 1] = g;
+    pixels[idx + 2] = b;
   }
 
   /// Bilinear interpolation helper
@@ -195,30 +210,14 @@ class FaceAlignmentHelper {
   static List<List<double>> extractOrderedLandmarks(
     List<FaceLandmark> landmarks,
   ) {
-    final map = <FaceLandmarkType, FaceLandmark>{
-      for (final l in landmarks) l.type: l,
-    };
-
-    final required = [
-      FaceLandmarkType.leftEye,
-      FaceLandmarkType.rightEye,
-      FaceLandmarkType.noseBase,
-      FaceLandmarkType.leftMouth,
-      FaceLandmarkType.rightMouth,
-    ];
-
-    for (final type in required) {
-      if (!map.containsKey(type)) {
-        throw Exception('Missing required landmark: $type');
-      }
+    if (landmarks.length != 5) {
+      throw Exception(
+        'Expected exactly 5 landmarks: leftEye, rightEye, noseBase, leftMouth, rightMouth.',
+      );
     }
 
-    return [
-      map[FaceLandmarkType.leftEye]!,
-      map[FaceLandmarkType.rightEye]!,
-      map[FaceLandmarkType.noseBase]!,
-      map[FaceLandmarkType.leftMouth]!,
-      map[FaceLandmarkType.rightMouth]!,
-    ].map((l) => [l.position.x.toDouble(), l.position.y.toDouble()]).toList();
+    return landmarks
+        .map((l) => [l.position.x.toDouble(), l.position.y.toDouble()])
+        .toList();
   }
 }

@@ -1,14 +1,14 @@
 import 'dart:typed_data';
 
-import 'package:image/image.dart' as img;
+import '../image/face_image_provider.dart';
 
 /// Calculate Laplacian score for blur detection
 /// Higher score = sharper image
-int laplacianScore(img.Image resized, {required int laplacePixelThreshold}) {
+int laplacianScore(FaceImageBuffer resized, {required int laplacePixelThreshold}) {
   final w = resized.width;
   final h = resized.height;
   final gray = Uint8List(w * h);
-  final bytes = resized.getBytes(order: img.ChannelOrder.rgb);
+  final bytes = resized.pixels;
 
   // Convert to grayscale
   for (int i = 0, p = 0; i < gray.length; i++, p += 3) {
@@ -45,11 +45,11 @@ int laplacianScore(img.Image resized, {required int laplacePixelThreshold}) {
 /// Calculate Laplacian variance for blur detection
 /// This is more robust than pixel count method
 /// Returns variance value (higher = sharper)
-double laplacianVariance(img.Image resized) {
+double laplacianVariance(FaceImageBuffer resized) {
   final w = resized.width;
   final h = resized.height;
   final gray = Uint8List(w * h);
-  final bytes = resized.getBytes(order: img.ChannelOrder.rgb);
+  final bytes = resized.pixels;
 
   // Convert to grayscale
   for (int i = 0, p = 0; i < gray.length; i++, p += 3) {

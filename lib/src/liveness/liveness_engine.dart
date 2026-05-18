@@ -1,7 +1,6 @@
 import 'dart:developer' as developer;
 
-import 'package:image/image.dart' as img;
-
+import '../image/face_image_provider.dart';
 import 'image_to_nhwc.dart';
 import 'laplacian.dart';
 import 'liveness_options.dart';
@@ -11,23 +10,19 @@ import 'tflite_runner.dart';
 class LivenessEngine {
   final TFLiteRunner _runner;
   final LivenessOptions _options;
+  final FaceImageProvider _imageProvider;
 
-  const LivenessEngine(this._runner, this._options);
+  const LivenessEngine(this._runner, this._options, this._imageProvider);
 
-  Future<LivenessResult> analyze(img.Image face) async {
+  Future<LivenessResult> analyze(FaceImageBuffer face) async {
     final sw = Stopwatch()..start();
 
     // Resize with explicit interpolation
-    final img.Image resized;
+    final FaceImageBuffer resized;
     if (face.width == 224 && face.height == 224) {
       resized = face;
     } else {
-      resized = img.copyResize(
-        face,
-        width: 224,
-        height: 224,
-        interpolation: img.Interpolation.linear,
-      );
+      resized = await _imageProvider.resize(face, 224, 224);
     }
 
     // Calculate Laplacian score for blur detection

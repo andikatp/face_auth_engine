@@ -1,8 +1,7 @@
 import 'dart:io';
 
-import 'package:image/image.dart' as imglib;
-
-import '../detection/face_detector_helper.dart';
+import '../detection/face_detector_provider.dart';
+import '../image/face_image_provider.dart';
 import 'liveness_engine.dart';
 import 'liveness_options.dart';
 import 'liveness_result.dart';
@@ -21,7 +20,7 @@ import 'tflite_runner.dart';
 /// final result = await detector.detectLiveness(imageFile);
 ///
 /// // Option B: Manually pass cropped face image
-/// final result = await detector.analyze(faceImage);
+/// final result = await detector.analyze(faceImageBuffer);
 ///
 /// print('Is Live: ${result.isLive}, Score: ${result.score}');
 /// await detector.dispose();
@@ -29,12 +28,15 @@ import 'tflite_runner.dart';
 class LivenessDetector {
   final LivenessEngine _engine;
   final TFLiteRunner _runner;
-  final FaceDetectorHelper _faceDetector;
+  final FaceDetectorProvider faceDetector;
+  final FaceImageProvider imageProvider;
 
-  const LivenessDetector._(this._engine, this._runner, this._faceDetector);
+  const LivenessDetector._(this._engine, this._runner, this.faceDetector, this.imageProvider);
 
   /// Create a new liveness detector with specified options
   static Future<LivenessDetector> create({
+    required FaceDetectorProvider faceDetector,
+    required FaceImageProvider imageProvider,
     LivenessOptions options = const LivenessOptions(),
   }) async {
     final runner = await TFLiteRunner.create(
@@ -45,10 +47,9 @@ class LivenessDetector {
     // Warm up the model for stable inference
     await runner.warmUp(times: options.warmUpIterations);
 
-    final engine = LivenessEngine(runner, options);
-    final pd = FaceDetectorHelper();
+    final engine = LivenessEngine(runner, options, imageProvider);
 
-    return LivenessDetector._(engine, runner, pd);
+    return LivenessDetector._(engine, runner, faceDetector, imageProvider);
   }
 
   /// Analyze a full frame image file.
@@ -59,24 +60,19 @@ class LivenessDetector {
   /// 3. Run liveness analysis on the cropped face
   Future<LivenessResult> detectLiveness(File imageFile) async {
     // 1. Detect face
-    final faceResult = await _faceDetector.detectFace(imageFile);
+    final faceResult = await faceDetector.detectFace(imageFile);
 
     // 2. Decode full image
-    final bytes = await imageFile.readAsBytes();
-    var fullImage = imglib.decodeImage(bytes);
-    if (fullImage == null) throw Exception("Could not decode image file");
-
-    // Ensure upright orientation so bounding box matches pixels
-    fullImage = imglib.bakeOrientation(fullImage);
+    final fullImage = await imageProvider.loadImage(imageFile);
 
     // 3. Crop face using bounding box from detection
     final box = faceResult.boundingBox;
-    final croppedFace = imglib.copyCrop(
+    final croppedFace = await imageProvider.crop(
       fullImage,
-      x: box.left.toInt(),
-      y: box.top.toInt(),
-      width: box.width.toInt(),
-      height: box.height.toInt(),
+      box.left.toInt(),
+      box.top.toInt(),
+      box.width.toInt(),
+      box.height.toInt(),
     );
 
     // 4. Analyze
@@ -92,11 +88,10 @@ class LivenessDetector {
   /// - `score`: liveness probability (0.0 = spoof, 1.0 = live)
   /// - `laplacian`: blur detection score
   /// - `duration`: processing time
-  Future<LivenessResult> analyze(imglib.Image face) => _engine.analyze(face);
+  Future<LivenessResult> analyze(FaceImageBuffer face) => _engine.analyze(face);
 
   /// Dispose resources
   Future<void> dispose() async {
     await _runner.dispose();
-    _faceDetector.dispose();
   }
 }

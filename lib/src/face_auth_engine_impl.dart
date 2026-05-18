@@ -3,12 +3,13 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:image/image.dart' as img;
+
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 import 'alignment/face_alignment_helper.dart';
-import 'detection/face_detector_helper.dart';
+import 'detection/face_detector_provider.dart';
 import 'face_config.dart';
+import 'image/face_image_provider.dart';
 import 'recognition/face_recognizer.dart';
 
 /// Main facade for face authentication engine.
@@ -23,19 +24,23 @@ class FaceAuthEngine {
       'packages/face_auth_engine/assets/models/mobilefacenet.tflite';
 
   Interpreter? _interpreter;
-  FaceDetectorHelper? _faceDetector;
+  final FaceDetectorProvider faceDetector;
+  final FaceImageProvider imageProvider;
   late FaceRecognizer _recognizer;
 
-  FaceAuthEngine({FaceConfig? config})
+  FaceAuthEngine({
+    required this.faceDetector,
+    required this.imageProvider,
+    FaceConfig? config,
+  })
     : config = config ?? FaceConfig.defaultConfig {
     _recognizer = FaceRecognizer();
     _initializeAsync();
   }
 
-  /// Initialize TFLite model and face detector.
+  /// Initialize TFLite model.
   Future<void> _initializeAsync() async {
     await _loadModel();
-    _faceDetector = FaceDetectorHelper();
   }
 
   /// Load the TensorFlow Lite model.
@@ -75,19 +80,11 @@ class FaceAuthEngine {
       await _loadModel();
     }
 
-    _faceDetector ??= FaceDetectorHelper();
-
-    // Read and decode image
-    final imageBytes = await imageFile.readAsBytes();
-    var originalImage = img.decodeImage(imageBytes);
-    if (originalImage == null) {
-      throw Exception('Failed to decode image');
-    }
-    // Ensure image is upright (handles EXIF orientation)
-    originalImage = img.bakeOrientation(originalImage);
+    // Read and decode image using provider
+    final originalImage = await imageProvider.loadImage(imageFile);
 
     // Step 1: Detect face and extract landmarks
-    final faceResult = await _faceDetector!.detectFace(imageFile);
+    final faceResult = await faceDetector.detectFace(imageFile);
 
     // Step 2: Validate face quality
     if (!_isFaceQualityAcceptable(faceResult)) {
@@ -191,22 +188,20 @@ class FaceAuthEngine {
   /// Dispose resources.
   void dispose() {
     _interpreter?.close();
-    _faceDetector?.dispose();
   }
 
   /// Preprocess aligned face image for MobileFaceNet.
   /// Normalizes pixel values to [-1, 1].
-  Float32List _preprocessImage(img.Image alignedFace) {
+  Float32List _preprocessImage(FaceImageBuffer alignedFace) {
     final inputImage = Float32List(112 * 112 * 3);
     int pixelIndex = 0;
 
     for (int y = 0; y < 112; y++) {
       for (int x = 0; x < 112; x++) {
-        final pixel = alignedFace.getPixel(x, y);
         // Normalize to [-1, 1]: (pixel - 127.5) / 128.0
-        inputImage[pixelIndex++] = (pixel.r.toInt() - 127.5) / 128.0;
-        inputImage[pixelIndex++] = (pixel.g.toInt() - 127.5) / 128.0;
-        inputImage[pixelIndex++] = (pixel.b.toInt() - 127.5) / 128.0;
+        inputImage[pixelIndex++] = (alignedFace.getR(x, y) - 127.5) / 128.0;
+        inputImage[pixelIndex++] = (alignedFace.getG(x, y) - 127.5) / 128.0;
+        inputImage[pixelIndex++] = (alignedFace.getB(x, y) - 127.5) / 128.0;
       }
     }
 

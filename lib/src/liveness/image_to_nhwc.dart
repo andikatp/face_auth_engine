@@ -1,14 +1,13 @@
-import 'package:image/image.dart' as img;
-
+import '../image/face_image_provider.dart';
 import 'liveness_options.dart';
 
 /// Convert image to NHWC tensor format with configurable normalization
 /// Returns a Float32List wrapped in NHWC shape for TFLite inference
 List<List<List<List<double>>>> toNHWC(
-  img.Image resized, {
+  FaceImageBuffer resized, {
   NormalizationType normalization = NormalizationType.centered,
 }) {
-  final bytes = resized.getBytes(order: img.ChannelOrder.rgb);
+  final bytes = resized.pixels;
   int index = 0;
 
   return [

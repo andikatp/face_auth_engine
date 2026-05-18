@@ -1,0 +1,16 @@
+name: face_auth_engine_example
+description: Face Auth Engine Example
+publish_to: 'none'
+
+version: 0.0.1
+
+environment:
+  sdk: ^3.10.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  face_auth_engine:
+    path: ../
+  google_mlkit_face_detection: ^0.13.1
+  image: ^4.6.0

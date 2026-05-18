@@ -9,7 +9,7 @@ A stateless face authentication engine for Flutter, featuring 1:1 face verificat
 - **Stateless Architecture** — pure functional API, no internal state
 - **Face Recognition** — MobileFaceNet embeddings (192-dim)
 - **Liveness Detection** — On-device anti-spoofing (MobileNetV2)
-- **Reliable Detection** — Uses Google ML Kit for face bounding boxes
+- **Agnostic Face Detection** — Bring your own face detector (e.g. `google_mlkit_face_detection`), so this package doesn't bloat your app size with duplicate ML models.
 - **Precise Alignment** — Landmark-based similarity transformation
 - **Optimized Performance** — TFLite GPU delegation support
 
@@ -35,10 +35,14 @@ A stateless face authentication engine for Flutter, featuring 1:1 face verificat
 
 **Initialize Engine**
 
+First, you must create a `FaceDetectorProvider` and `FaceImageProvider` (see the `example` folder for implementations). Then:
+
 ```dart
 import 'package:face_auth_engine/face_auth_engine.dart';
 
 final engine = FaceAuthEngine(
+  faceDetector: MLKitFaceDetectorProvider(), // Your implementation
+  imageProvider: ImageProviderImpl(), // Your implementation
   config: FaceConfig(
     recognitionThreshold: 1.0, // Adjust stricter/looser
   ),
@@ -92,6 +96,7 @@ late final LivenessDetector liveness;
 
 Future<void> initLiveness() async {
   liveness = await LivenessDetector.create(
+    faceDetector: MLKitFaceDetectorProvider(), // Your implementation
     options: LivenessOptions(
       useGpu: true,
       options: 0.5, // Threshold

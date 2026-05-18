@@ -10,8 +10,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  google_mlkit_face_detection: ^0.13.1
-  image: ^4.6.0
   tflite_flutter: ^0.12.1
 
 dev_dependencies:
