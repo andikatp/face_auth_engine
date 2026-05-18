@@ -18,8 +18,10 @@ import 'recognition/face_recognizer.dart';
 ///
 /// This class is stateless regarding face data - all persistence
 /// is delegated to the consuming application.
+
 class FaceAuthEngine {
   final FaceConfig config;
+  // Model sourced from third-party repository. See LICENSE section in README.
   final String _modelPath =
       'packages/face_auth_engine/assets/models/mobilefacenet.tflite';
 

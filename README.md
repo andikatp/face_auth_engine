@@ -185,3 +185,16 @@ This library provides estimation tools for utility and basic security. It should
 - TensorFlow Lite team
 - MobileFaceNet authors
 - Google ML Kit
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+### Third-Party Models
+
+This package includes pre-trained TFLite models sourced from public repositories.
+
+The authors of this repository do not claim ownership of these models.  
+All rights and licenses belong to their respective original authors.
+
+Users are responsible for verifying and complying with the licenses of the original model sources when using this package, especially for commercial use.

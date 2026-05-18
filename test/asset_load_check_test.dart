@@ -6,6 +6,7 @@ void main() {
 
   test('Should load mobilefacenet.tflite asset via package path', () async {
     // This expects the future to complete without throwing an error
+    // Model sourced from third-party repository. See LICENSE section in README.
     await expectLater(
       rootBundle.load(
         'packages/face_auth_engine/assets/models/mobilefacenet.tflite',
