@@ -9,8 +9,19 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart' as
 /// class to FaceAuthEngine and LivenessDetector.
 class MLKitFaceDetectorProvider implements FaceDetectorProvider {
   late mlkit.FaceDetector _faceDetector;
+  final String noFaceMessage;
+  final String Function(int count)? multipleFacesMessage;
+  final String missingLandmarksMessage;
 
-  MLKitFaceDetectorProvider() {
+  MLKitFaceDetectorProvider({
+    this.noFaceMessage = 'No face detected. Please ensure:\n'
+        '• Your face is clearly visible\n'
+        '• Good lighting conditions\n'
+        '• Face is frontal (not side profile)',
+    this.multipleFacesMessage,
+    this.missingLandmarksMessage =
+        'Required face landmarks missing. Please use a clear frontal face photo.',
+  }) {
     final options = mlkit.FaceDetectorOptions(
       enableLandmarks: true,
       enableClassification: false,
@@ -26,18 +37,13 @@ class MLKitFaceDetectorProvider implements FaceDetectorProvider {
     List<mlkit.Face> faces = await _faceDetector.processImage(inputImage);
 
     if (faces.isEmpty) {
-      throw Exception(
-        'No face detected. Please ensure:\n'
-        '• Your face is clearly visible\n'
-        '• Good lighting conditions\n'
-        '• Face is frontal (not side profile)',
-      );
+      throw Exception(noFaceMessage);
     }
     if (faces.length > 1) {
-      throw Exception(
-        'Multiple faces detected (${faces.length} faces).\n'
-        'Please ensure only one person is in the image.',
-      );
+      final message = multipleFacesMessage?.call(faces.length) ??
+          'Multiple faces detected (${faces.length} faces).\n'
+          'Please ensure only one person is in the image.';
+      throw Exception(message);
     }
 
     final face = faces.first;
@@ -47,8 +53,12 @@ class MLKitFaceDetectorProvider implements FaceDetectorProvider {
     final leftMouth = face.landmarks[mlkit.FaceLandmarkType.leftMouth];
     final rightMouth = face.landmarks[mlkit.FaceLandmarkType.rightMouth];
 
-    if (leftEye == null || rightEye == null || noseTip == null || leftMouth == null || rightMouth == null) {
-      throw Exception('Required face landmarks missing. Please use a clear frontal face photo.');
+    if (leftEye == null ||
+        rightEye == null ||
+        noseTip == null ||
+        leftMouth == null ||
+        rightMouth == null) {
+      throw Exception(missingLandmarksMessage);
     }
 
     return FaceDetectionResult(
