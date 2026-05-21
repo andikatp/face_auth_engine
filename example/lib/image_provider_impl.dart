@@ -8,7 +8,7 @@ class ImageProviderImpl implements FaceImageProvider {
   @override
   Future<FaceImageBuffer> loadImage(File file) async {
     final bytes = await file.readAsBytes();
-    img.Image? decoded = img.decodeImage(bytes);
+    var decoded = img.decodeImage(bytes);
     if (decoded == null) throw Exception('Failed to decode image');
 
     // Fix orientation
@@ -18,16 +18,37 @@ class ImageProviderImpl implements FaceImageProvider {
   }
 
   @override
-  Future<FaceImageBuffer> resize(FaceImageBuffer image, int width, int height) async {
+  Future<FaceImageBuffer> resize(
+    FaceImageBuffer image,
+    int width,
+    int height,
+  ) async {
     final originalImage = _fromBuffer(image);
-    final resized = img.copyResize(originalImage, width: width, height: height, interpolation: img.Interpolation.linear);
+    final resized = img.copyResize(
+      originalImage,
+      width: width,
+      height: height,
+      interpolation: img.Interpolation.linear,
+    );
     return _toBuffer(resized);
   }
 
   @override
-  Future<FaceImageBuffer> crop(FaceImageBuffer image, int x, int y, int width, int height) async {
+  Future<FaceImageBuffer> crop(
+    FaceImageBuffer image,
+    int x,
+    int y,
+    int width,
+    int height,
+  ) async {
     final originalImage = _fromBuffer(image);
-    final cropped = img.copyCrop(originalImage, x: x, y: y, width: width, height: height);
+    final cropped = img.copyCrop(
+      originalImage,
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+    );
     return _toBuffer(cropped);
   }
 

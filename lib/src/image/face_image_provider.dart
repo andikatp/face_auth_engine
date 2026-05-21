@@ -4,10 +4,6 @@ import 'dart:typed_data';
 /// A simple buffer holding a 3-channel RGB image (no alpha channel).
 /// Used strictly internally for processing pixels.
 class FaceImageBuffer {
-  final int width;
-  final int height;
-  final Uint8List pixels;
-
   FaceImageBuffer({
     required this.width,
     required this.height,
@@ -15,10 +11,14 @@ class FaceImageBuffer {
   }) {
     if (pixels.length != width * height * 3) {
       throw ArgumentError(
-        'Pixels length must be exactly width * height * 3 for an RGB image (no alpha).',
+        'Pixels length must be exactly width * height * 3 '
+        'for an RGB image (no alpha).',
       );
     }
   }
+  final int width;
+  final int height;
+  final Uint8List pixels;
 
   /// Gets the red channel value of the pixel at (x, y)
   int getR(int x, int y) => pixels[(y * width + x) * 3];
@@ -31,7 +31,8 @@ class FaceImageBuffer {
 }
 
 /// Abstract provider for decoding, cropping, and resizing images.
-/// The host app should provide an implementation, for example using `package:image`.
+/// The host app should provide an implementation,
+/// for example using `package:image`.
 abstract class FaceImageProvider {
   /// Loads an image from a file, fixing any EXIF orientation issues,
   /// and returns it as an RGB buffer.

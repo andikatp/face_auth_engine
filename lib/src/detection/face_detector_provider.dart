@@ -17,17 +17,17 @@ abstract class FaceDetectorProvider {
 
 /// Represents the points needed for face alignment and liveness detection.
 class FaceLandmark {
-  final Point<int> position;
-
   FaceLandmark(this.position);
+
+  final Point<int> position;
 }
 
 /// Result of face detection.
 class FaceDetectionResult {
+  FaceDetectionResult({required this.landmarks, required this.boundingBox});
+
   /// Must contain exactly 5 landmarks in this exact order:
   /// [leftEye, rightEye, noseBase, leftMouth, rightMouth]
   final List<FaceLandmark> landmarks;
   final Rect boundingBox;
-
-  FaceDetectionResult({required this.landmarks, required this.boundingBox});
 }

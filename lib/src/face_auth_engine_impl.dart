@@ -1,16 +1,15 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-
+import 'package:face_auth_engine/src/alignment/face_alignment_helper.dart';
+import 'package:face_auth_engine/src/detection/face_detector_provider.dart';
+import 'package:face_auth_engine/src/face_config.dart';
+import 'package:face_auth_engine/src/image/face_image_provider.dart';
+import 'package:face_auth_engine/src/recognition/face_recognizer.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
-
-import 'alignment/face_alignment_helper.dart';
-import 'detection/face_detector_provider.dart';
-import 'face_config.dart';
-import 'image/face_image_provider.dart';
-import 'recognition/face_recognizer.dart';
 
 /// Main facade for face authentication engine.
 /// Provides face detection, alignment, embedding extraction,
@@ -20,6 +19,14 @@ import 'recognition/face_recognizer.dart';
 /// is delegated to the consuming application.
 
 class FaceAuthEngine {
+  FaceAuthEngine({
+    required this.faceDetector,
+    required this.imageProvider,
+    FaceConfig? config,
+  }) : config = config ?? FaceConfig.defaultConfig {
+    _recognizer = FaceRecognizer();
+    unawaited(_initializeAsync());
+  }
   final FaceConfig config;
   // Model sourced from third-party repository. See LICENSE section in README.
   final String _modelPath =
@@ -29,16 +36,6 @@ class FaceAuthEngine {
   final FaceDetectorProvider faceDetector;
   final FaceImageProvider imageProvider;
   late FaceRecognizer _recognizer;
-
-  FaceAuthEngine({
-    required this.faceDetector,
-    required this.imageProvider,
-    FaceConfig? config,
-  })
-    : config = config ?? FaceConfig.defaultConfig {
-    _recognizer = FaceRecognizer();
-    _initializeAsync();
-  }
 
   /// Initialize TFLite model.
   Future<void> _initializeAsync() async {
@@ -137,7 +134,8 @@ class FaceAuthEngine {
     return embeddings;
   }
 
-  /// Check if the person in the image at [imagePath] matches the [knownEmbedding].
+  /// Check if the person in the image at [imagePath]
+  /// matches the [knownEmbedding].
   Future<bool> isThePersonTheSame(
     String imagePath,
     List<double> knownEmbedding,
@@ -149,7 +147,8 @@ class FaceAuthEngine {
     return _recognizer.verify(newEmbedding, known, config.recognitionThreshold);
   }
 
-  /// Check if the person in the image at [imagePath] matches any of the [knownEmbeddings].
+  /// Check if the person in the image at [imagePath]
+  /// matches any of the [knownEmbeddings].
   /// Returns true if any of the known embeddings match the new image.
   Future<bool> matchFaceAgainstList(
     String imagePath,
@@ -196,10 +195,10 @@ class FaceAuthEngine {
   /// Normalizes pixel values to [-1, 1].
   Float32List _preprocessImage(FaceImageBuffer alignedFace) {
     final inputImage = Float32List(112 * 112 * 3);
-    int pixelIndex = 0;
+    var pixelIndex = 0;
 
-    for (int y = 0; y < 112; y++) {
-      for (int x = 0; x < 112; x++) {
+    for (var y = 0; y < 112; y++) {
+      for (var x = 0; x < 112; x++) {
         // Normalize to [-1, 1]: (pixel - 127.5) / 128.0
         inputImage[pixelIndex++] = (alignedFace.getR(x, y) - 127.5) / 128.0;
         inputImage[pixelIndex++] = (alignedFace.getG(x, y) - 127.5) / 128.0;
@@ -217,17 +216,17 @@ class FaceAuthEngine {
     }
 
     // Reshape for TFLite: [1, 112, 112, 3]
-    final input = inputImage.reshape([1, 112, 112, 3]);
+    final input = inputImage.reshape<List<double>>([1, 112, 112, 3]);
 
     // Prepare output: [1, 192]
-    final output = List.filled(1 * 192, 0.0).reshape([1, 192]);
+    final output = List.filled(1 * 192, 0).reshape<List<double>>([1, 192]);
 
     // Run inference
     _interpreter!.run(input, output);
 
     // Flatten output
     final outputList = Float32List.fromList(
-      output.expand<double>((e) => e).toList(),
+      output.expand<double>((e) => e as Iterable<double>).toList(),
     );
 
     return outputList;

@@ -14,21 +14,21 @@ void main() {
 
     test('verify should return true for identical embeddings', () {
       final emb = _createNormalizedEmbedding([0.6, 0.0, 0.8]);
-      final result = recognizer.verify(emb, emb, 1.0);
+      final result = recognizer.verify(emb, emb, 1);
       expect(result, isTrue);
     });
 
     test('verify should return true for very similar embeddings', () {
       final emb1 = _createNormalizedEmbedding([0.6, 0.0, 0.8]);
       final emb2 = _createNormalizedEmbedding([0.61, 0.01, 0.79]);
-      final result = recognizer.verify(emb1, emb2, 1.0);
+      final result = recognizer.verify(emb1, emb2, 1);
       expect(result, isTrue);
     });
 
     test('verify should return false for dissimilar embeddings', () {
       final emb1 = _createNormalizedEmbedding([1.0, 0.0, 0.0]);
       final emb2 = _createNormalizedEmbedding([0.0, 1.0, 0.0]);
-      final result = recognizer.verify(emb1, emb2, 1.0);
+      final result = recognizer.verify(emb1, emb2, 1);
       expect(result, isFalse);
     });
 
@@ -37,7 +37,7 @@ void main() {
       final emb2 = _createNormalizedEmbedding([0.55, 0.1, 0.75]);
 
       // With loose threshold
-      expect(recognizer.verify(emb1, emb2, 1.0), isTrue);
+      expect(recognizer.verify(emb1, emb2, 1), isTrue);
 
       // With strict threshold
       expect(recognizer.verify(emb1, emb2, 0.05), isFalse);
@@ -55,7 +55,7 @@ void main() {
       var emb1 = Float32List(192);
       var emb2 = Float32List(192);
 
-      for (int i = 0; i < 192; i++) {
+      for (var i = 0; i < 192; i++) {
         emb1[i] = math.sin(i * 0.1);
         emb2[i] = math.sin(i * 0.1);
       }
@@ -63,7 +63,7 @@ void main() {
       emb1 = _normalize(emb1);
       emb2 = _normalize(emb2);
 
-      expect(recognizer.verify(emb1, emb2, 1.0), isTrue);
+      expect(recognizer.verify(emb1, emb2, 1), isTrue);
     });
   });
 }

@@ -5,10 +5,14 @@ import 'package:face_auth_engine/src/liveness/laplacian.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  FaceImageBuffer createTestImage(int width, int height, int Function(int x, int y) pixelValue) {
+  FaceImageBuffer createTestImage(
+    int width,
+    int height,
+    int Function(int x, int y) pixelValue,
+  ) {
     final pixels = Uint8List(width * height * 3);
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
         final val = pixelValue(x, y);
         final idx = (y * width + x) * 3;
         pixels[idx] = val;
@@ -22,7 +26,11 @@ void main() {
   group('laplacianScore', () {
     test('should return higher score for sharp images', () {
       // Create a sharp image with high contrast edges
-      final sharpImage = createTestImage(100, 100, (x, y) => ((x ~/ 10) + (y ~/ 10)) % 2 == 0 ? 255 : 0);
+      final sharpImage = createTestImage(
+        100,
+        100,
+        (x, y) => ((x ~/ 10) + (y ~/ 10)).isEven ? 255 : 0,
+      );
 
       // Create a blurry image (uniform color)
       final blurryImage = createTestImage(100, 100, (x, y) => 128);
@@ -37,7 +45,11 @@ void main() {
     });
 
     test('should handle small threshold', () {
-      final testImage = createTestImage(50, 50, (x, y) => (x * 5).clamp(0, 255));
+      final testImage = createTestImage(
+        50,
+        50,
+        (x, y) => (x * 5).clamp(0, 255),
+      );
 
       final lowThreshold = laplacianScore(testImage, laplacePixelThreshold: 10);
       final highThreshold = laplacianScore(
@@ -52,7 +64,11 @@ void main() {
   group('laplacianVariance', () {
     test('should return higher variance for sharp images', () {
       // Create a sharp image
-      final sharpImage = createTestImage(100, 100, (x, y) => ((x ~/ 5) + (y ~/ 5)) % 2 == 0 ? 255 : 0);
+      final sharpImage = createTestImage(
+        100,
+        100,
+        (x, y) => ((x ~/ 5) + (y ~/ 5)).isEven ? 255 : 0,
+      );
 
       // Create a blurry image
       final blurryImage = createTestImage(100, 100, (x, y) => 128);

@@ -1,28 +1,31 @@
 import 'dart:typed_data';
 
-import '../image/face_image_provider.dart';
+import 'package:face_auth_engine/src/image/face_image_provider.dart';
 
 /// Calculate Laplacian score for blur detection
 /// Higher score = sharper image
-int laplacianScore(FaceImageBuffer resized, {required int laplacePixelThreshold}) {
+int laplacianScore(
+  FaceImageBuffer resized, {
+  required int laplacePixelThreshold,
+}) {
   final w = resized.width;
   final h = resized.height;
   final gray = Uint8List(w * h);
   final bytes = resized.pixels;
 
   // Convert to grayscale
-  for (int i = 0, p = 0; i < gray.length; i++, p += 3) {
+  for (var i = 0, p = 0; i < gray.length; i++, p += 3) {
     final r = bytes[p];
     final g = bytes[p + 1];
     final b = bytes[p + 2];
-    gray[i] = ((77 * r + 150 * g + 29 * b) >> 8);
+    gray[i] = (77 * r + 150 * g + 29 * b) >> 8;
   }
 
-  int score = 0;
+  var score = 0;
 
-  for (int r = 1; r < h - 1; r++) {
+  for (var r = 1; r < h - 1; r++) {
     final rowOffset = r * w;
-    for (int c = 1; c < w - 1; c++) {
+    for (var c = 1; c < w - 1; c++) {
       final idx = rowOffset + c;
       final center = gray[idx];
 
@@ -52,21 +55,21 @@ double laplacianVariance(FaceImageBuffer resized) {
   final bytes = resized.pixels;
 
   // Convert to grayscale
-  for (int i = 0, p = 0; i < gray.length; i++, p += 3) {
+  for (var i = 0, p = 0; i < gray.length; i++, p += 3) {
     final r = bytes[p];
     final g = bytes[p + 1];
     final b = bytes[p + 2];
-    gray[i] = ((77 * r + 150 * g + 29 * b) >> 8);
+    gray[i] = (77 * r + 150 * g + 29 * b) >> 8;
   }
 
   // Calculate Laplacian and accumulate for variance
   double sum = 0;
   double sumSq = 0;
-  int count = 0;
+  var count = 0;
 
-  for (int r = 1; r < h - 1; r++) {
+  for (var r = 1; r < h - 1; r++) {
     final rowOffset = r * w;
-    for (int c = 1; c < w - 1; c++) {
+    for (var c = 1; c < w - 1; c++) {
       final idx = rowOffset + c;
       final center = gray[idx];
 

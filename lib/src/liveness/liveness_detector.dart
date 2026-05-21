@@ -1,11 +1,11 @@
 import 'dart:io';
 
-import '../detection/face_detector_provider.dart';
-import '../image/face_image_provider.dart';
-import 'liveness_engine.dart';
-import 'liveness_options.dart';
-import 'liveness_result.dart';
-import 'tflite_runner.dart';
+import 'package:face_auth_engine/src/detection/face_detector_provider.dart';
+import 'package:face_auth_engine/src/image/face_image_provider.dart';
+import 'package:face_auth_engine/src/liveness/liveness_engine.dart';
+import 'package:face_auth_engine/src/liveness/liveness_options.dart';
+import 'package:face_auth_engine/src/liveness/liveness_result.dart';
+import 'package:face_auth_engine/src/liveness/tflite_runner.dart';
 
 /// Liveness detector for anti-spoofing face verification.
 ///
@@ -26,12 +26,16 @@ import 'tflite_runner.dart';
 /// await detector.dispose();
 /// ```
 class LivenessDetector {
+  const LivenessDetector._(
+    this._engine,
+    this._runner,
+    this.faceDetector,
+    this.imageProvider,
+  );
   final LivenessEngine _engine;
   final TFLiteRunner _runner;
   final FaceDetectorProvider faceDetector;
   final FaceImageProvider imageProvider;
-
-  const LivenessDetector._(this._engine, this._runner, this.faceDetector, this.imageProvider);
 
   /// Create a new liveness detector with specified options
   static Future<LivenessDetector> create({
@@ -81,7 +85,8 @@ class LivenessDetector {
 
   /// Analyze a face image for liveness
   ///
-  /// [face] should be a cropped face image (face detection should be done beforehand)
+  /// [face] should be a cropped face image (face detection
+  /// should be done beforehand)
   ///
   /// Returns [LivenessResult] with:
   /// - `isLive`: true if detected as live person

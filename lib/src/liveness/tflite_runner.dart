@@ -4,10 +4,8 @@ import 'dart:io';
 import 'package:tflite_flutter/tflite_flutter.dart';
 
 class TFLiteRunner {
+  const TFLiteRunner._(this._interp);
   final Interpreter _interp;
-  final IsolateInterpreter _iso;
-
-  const TFLiteRunner._(this._interp, this._iso);
 
   static Future<TFLiteRunner> create({
     required bool useGpu,
@@ -16,7 +14,6 @@ class TFLiteRunner {
     const assetPath = 'packages/face_auth_engine/assets/models/model.tflite';
     final options = await _createOptions(useGpu: useGpu, threads: threads);
     final i = await Interpreter.fromAsset(assetPath, options: options);
-    final iso = await IsolateInterpreter.create(address: i.address);
 
     // Log model info for debugging
     final inputShape = i.getInputTensor(0).shape;
@@ -25,12 +22,11 @@ class TFLiteRunner {
       'Liveness model loaded: input=$inputShape, output=$outputShape',
     );
 
-    final runner = TFLiteRunner._(i, iso);
+    final runner = TFLiteRunner._(i);
     return runner;
   }
 
   Future<void> dispose() async {
-    await _iso.close();
     _interp.close();
   }
 
@@ -54,10 +50,10 @@ class TFLiteRunner {
     final outputShape = _interp.getOutputTensor(0).shape;
     final outputSize = outputShape.length > 1 ? outputShape[1] : 1;
 
-    final List<List<double>> output = [List.filled(outputSize, 0.0)];
-    final Map<int, List<List<double>>> outputs = {0: output};
+    final output = <List<double>>[List.filled(outputSize, 0)];
+    final outputs = <int, List<List<double>>>{0: output};
 
-    await _iso.runForMultipleInputs([nhwc], outputs);
+    _interp.runForMultipleInputs([nhwc], outputs);
 
     // Log raw output for debugging
     developer.log('Liveness raw output: ${output[0]}');
@@ -83,7 +79,7 @@ Future<InterpreterOptions> _createOptions({
   if (useGpu) {
     try {
       if (Platform.isAndroid) {
-        var gpuDelegate = GpuDelegateV2(
+        final gpuDelegate = GpuDelegateV2(
           options: GpuDelegateOptionsV2(
             isPrecisionLossAllowed: true,
             inferencePriority1: 2,
@@ -91,7 +87,7 @@ Future<InterpreterOptions> _createOptions({
         );
         options.addDelegate(gpuDelegate);
       } else if (Platform.isIOS) {
-        var gpuDelegate = GpuDelegate(
+        final gpuDelegate = GpuDelegate(
           options: GpuDelegateOptions(allowPrecisionLoss: true),
         );
         options.addDelegate(gpuDelegate);

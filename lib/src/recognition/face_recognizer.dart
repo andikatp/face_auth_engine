@@ -16,8 +16,8 @@ class FaceRecognizer {
 
   /// Calculate Euclidean (L2) distance between two embeddings.
   double _euclideanDistance(Float32List a, Float32List b) {
-    double sum = 0.0;
-    for (int i = 0; i < a.length; i++) {
+    var sum = 0.0;
+    for (var i = 0; i < a.length; i++) {
       final d = a[i] - b[i];
       sum += d * d;
     }

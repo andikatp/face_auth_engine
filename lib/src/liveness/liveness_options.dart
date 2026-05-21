@@ -9,6 +9,19 @@ enum NormalizationType {
 
 /// Configuration options for liveness detection
 class LivenessOptions {
+  const LivenessOptions({
+    this.useGpu = false,
+    this.cpuThreads = 1,
+    this.threshold = 0.5,
+    this.applyLaplacianGate = false,
+    this.laplacianThreshold = 500,
+    this.laplacePixelThreshold = 50,
+    this.normalizationType = NormalizationType.centered,
+    this.outputIndex = 0,
+    this.outputIsSpoofProbability = true,
+    this.warmUpIterations = 10,
+  });
+
   /// Use GPU for processing
   final bool useGpu;
 
@@ -36,24 +49,12 @@ class LivenessOptions {
   /// Set to 1 if model outputs [live_prob, spoof_prob]
   final int outputIndex;
 
-  /// Whether model output is spoof probability (true) or live probability (false)
+  /// Whether model output is spoof probability (true)
+  /// or live probability (false)
   final bool outputIsSpoofProbability;
 
   /// Number of warm-up inference runs
   final int warmUpIterations;
-
-  const LivenessOptions({
-    this.useGpu = false,
-    this.cpuThreads = 1,
-    this.threshold = 0.5,
-    this.applyLaplacianGate = false,
-    this.laplacianThreshold = 500,
-    this.laplacePixelThreshold = 50,
-    this.normalizationType = NormalizationType.centered,
-    this.outputIndex = 0,
-    this.outputIsSpoofProbability = true,
-    this.warmUpIterations = 10,
-  });
 
   @override
   String toString() {
@@ -67,36 +68,5 @@ class LivenessOptions {
         ')';
   }
 
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other.runtimeType != runtimeType) return false;
-    return other is LivenessOptions &&
-        other.useGpu == useGpu &&
-        other.cpuThreads == cpuThreads &&
-        other.threshold == threshold &&
-        other.applyLaplacianGate == applyLaplacianGate &&
-        other.laplacianThreshold == laplacianThreshold &&
-        other.laplacePixelThreshold == laplacePixelThreshold &&
-        other.normalizationType == normalizationType &&
-        other.outputIndex == outputIndex &&
-        other.outputIsSpoofProbability == outputIsSpoofProbability &&
-        other.warmUpIterations == warmUpIterations;
-  }
 
-  @override
-  int get hashCode {
-    return Object.hash(
-      useGpu,
-      cpuThreads,
-      threshold,
-      applyLaplacianGate,
-      laplacianThreshold,
-      laplacePixelThreshold,
-      normalizationType,
-      outputIndex,
-      outputIsSpoofProbability,
-      warmUpIterations,
-    );
-  }
 }

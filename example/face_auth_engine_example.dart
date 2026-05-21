@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:face_auth_engine/face_auth_engine.dart';
+
 import 'lib/image_provider_impl.dart';
 import 'lib/mlkit_face_detector_provider.dart';
 
@@ -17,25 +18,26 @@ void main() async {
   final engine = FaceAuthEngine(
     faceDetector: MLKitFaceDetectorProvider(),
     imageProvider: ImageProviderImpl(),
-    config: FaceConfig(recognitionThreshold: 1.0),
+    config: FaceConfig.defaultConfig,
   );
 
   try {
     // 2. Extract embedding from an image file path
     developer.log('--- Extraction Phase ---');
     // Replace with a real path to test
-    final imagePath = 'path/to/person_photo.jpg';
+    const imagePath = 'path/to/person_photo.jpg';
 
     // Check if file exists in a real scenario
     final file = File(imagePath);
-    if (!await file.exists()) {
+    if (!file.existsSync()) {
       developer.log(
         'Example file not found at $imagePath. Skipping actual extraction.',
       );
     } else {
       final embedding = await engine.convertToEmbedded(imagePath);
       developer.log(
-        'Extracted embedding: ${embedding.take(5)}... (len: ${embedding.length})',
+        'Extracted embedding: ${embedding.take(5)}... '
+        '(len: ${embedding.length})',
       );
 
       // 3. Verify Person
@@ -51,7 +53,7 @@ void main() async {
     // Demonstrate converting list of paths
     final paths = ['path/to/photo1.jpg', 'path/to/photo2.jpg'];
     // In a real app, ensure these exist
-    if (await File(paths[0]).exists()) {
+    if (File(paths[0]).existsSync()) {
       final allEmbeddings = await engine.convertFromListToEmbedded(paths);
       developer.log('Extracted ${allEmbeddings.length} embeddings');
     }

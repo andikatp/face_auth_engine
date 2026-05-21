@@ -1,6 +1,12 @@
 /// Configuration for face authentication engine.
 /// All values are immutable after construction.
 class FaceConfig {
+  const FaceConfig({
+    this.recognitionThreshold = 1.0,
+    this.minFaceSize = 80,
+    this.maxRollAngle = 15.0,
+  });
+
   /// Recognition threshold for L2-normalized embeddings.
   /// Lower values are more strict.
   /// Default: 1.0
@@ -13,12 +19,6 @@ class FaceConfig {
   /// Maximum allowed head roll angle in degrees.
   /// Default: 15.0
   final double maxRollAngle;
-
-  const FaceConfig({
-    this.recognitionThreshold = 1.0,
-    this.minFaceSize = 80,
-    this.maxRollAngle = 15.0,
-  });
 
   /// Default configuration
   static const FaceConfig defaultConfig = FaceConfig();

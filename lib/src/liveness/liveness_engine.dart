@@ -1,18 +1,17 @@
 import 'dart:developer' as developer;
 
-import '../image/face_image_provider.dart';
-import 'image_to_nhwc.dart';
-import 'laplacian.dart';
-import 'liveness_options.dart';
-import 'liveness_result.dart';
-import 'tflite_runner.dart';
+import 'package:face_auth_engine/src/image/face_image_provider.dart';
+import 'package:face_auth_engine/src/liveness/image_to_nhwc.dart';
+import 'package:face_auth_engine/src/liveness/laplacian.dart';
+import 'package:face_auth_engine/src/liveness/liveness_options.dart';
+import 'package:face_auth_engine/src/liveness/liveness_result.dart';
+import 'package:face_auth_engine/src/liveness/tflite_runner.dart';
 
 class LivenessEngine {
+  const LivenessEngine(this._runner, this._options, this._imageProvider);
   final TFLiteRunner _runner;
   final LivenessOptions _options;
   final FaceImageProvider _imageProvider;
-
-  const LivenessEngine(this._runner, this._options, this._imageProvider);
 
   Future<LivenessResult> analyze(FaceImageBuffer face) async {
     final sw = Stopwatch()..start();
@@ -33,7 +32,8 @@ class LivenessEngine {
         laplacePixelThreshold: _options.laplacePixelThreshold,
       );
       developer.log(
-        'Laplacian score: $laplacian (threshold: ${_options.laplacianThreshold})',
+        'Laplacian score: $laplacian '
+        '(threshold: ${_options.laplacianThreshold})',
       );
     } else {
       laplacian = 999999; // Bypass
@@ -45,7 +45,7 @@ class LivenessEngine {
       developer.log('Image rejected: too blurry (laplacian=$laplacian)');
       return LivenessResult(
         isLive: false,
-        score: 0.0, // Definitely spoof if too blurry
+        score: 0, // Definitely spoof if too blurry
         laplacian: laplacian,
         duration: Duration.zero,
       );

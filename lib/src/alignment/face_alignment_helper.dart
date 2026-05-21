@@ -1,8 +1,8 @@
 import 'dart:developer' as developer;
 import 'dart:typed_data';
 
-import '../detection/face_detector_provider.dart';
-import '../image/face_image_provider.dart';
+import 'package:face_auth_engine/src/detection/face_detector_provider.dart';
+import 'package:face_auth_engine/src/image/face_image_provider.dart';
 
 class FaceAlignmentHelper {
   // Canonical 5-point landmark positions for MobileFaceNet (112x112 image)
@@ -22,7 +22,7 @@ class FaceAlignmentHelper {
     List<FaceLandmark> detectedLandmarks,
   ) {
     // Extract detected landmark positions
-    final List<List<double>> sourceLandmarks = extractOrderedLandmarks(
+    final sourceLandmarks = extractOrderedLandmarks(
       detectedLandmarks,
     );
 
@@ -43,7 +43,8 @@ class FaceAlignmentHelper {
     return alignedImage;
   }
 
-  /// Computes similarity transform (scale, rotation, translation) from source to destination points
+  /// Computes similarity transform (scale, rotation, translation)
+  /// from source to destination points
   /// Uses least squares method to find optimal transformation
   static List<double> _computeSimilarityTransform(
     List<List<double>> src,
@@ -54,15 +55,23 @@ class FaceAlignmentHelper {
     // y' = b*x + a*y + ty
     // This preserves angles and scales uniformly (similarity transform)
 
-    int numPoints = src.length;
-    double sumX = 0, sumY = 0, sumU = 0, sumV = 0;
-    double sumXX = 0, sumYY = 0, sumXU = 0, sumYU = 0, sumXV = 0, sumYV = 0;
+    final numPoints = src.length;
+    double sumX = 0;
+    double sumY = 0;
+    double sumU = 0;
+    double sumV = 0;
+    double sumXX = 0;
+    double sumYY = 0;
+    double sumXU = 0;
+    double sumYU = 0;
+    double sumXV = 0;
+    double sumYV = 0;
 
-    for (int i = 0; i < numPoints; i++) {
-      double x = src[i][0];
-      double y = src[i][1];
-      double u = dst[i][0];
-      double v = dst[i][1];
+    for (var i = 0; i < numPoints; i++) {
+      final x = src[i][0];
+      final y = src[i][1];
+      final u = dst[i][0];
+      final v = dst[i][1];
 
       sumX += x;
       sumY += y;
@@ -76,17 +85,17 @@ class FaceAlignmentHelper {
       sumYV += y * v;
     }
 
-    double n = numPoints.toDouble();
-    double d = n * (sumXX + sumYY) - sumX * sumX - sumY * sumY;
+    final n = numPoints.toDouble();
+    final d = n * (sumXX + sumYY) - sumX * sumX - sumY * sumY;
 
     if (d.abs() < 1e-10) {
       throw Exception('Cannot compute similarity transform: singular matrix');
     }
 
-    double a = (n * (sumXU + sumYV) - sumX * sumU - sumY * sumV) / d;
-    double b = (n * (sumXV - sumYU) - sumX * sumV + sumY * sumU) / d;
-    double tx = (sumU - a * sumX + b * sumY) / n;
-    double ty = (sumV - b * sumX - a * sumY) / n;
+    final a = (n * (sumXU + sumYV) - sumX * sumU - sumY * sumV) / d;
+    final b = (n * (sumXV - sumYU) - sumX * sumV + sumY * sumU) / d;
+    final tx = (sumU - a * sumX + b * sumY) / n;
+    final ty = (sumV - b * sumX - a * sumY) / n;
 
     return [a, b, tx, ty];
   }
@@ -98,46 +107,46 @@ class FaceAlignmentHelper {
     int width,
     int height,
   ) {
-    double a = transform[0];
-    double b = transform[1];
-    double tx = transform[2];
-    double ty = transform[3];
+    final a = transform[0];
+    final b = transform[1];
+    final tx = transform[2];
+    final ty = transform[3];
 
     // Create output image buffer
     final alignedPixels = Uint8List(width * height * 3);
 
     // Compute inverse transform to map from destination to source
-    double det = a * a + b * b;
+    final det = a * a + b * b;
     if (det.abs() < 1e-10) {
       throw Exception('Cannot invert transform: determinant too small');
     }
 
-    double aInv = a / det;
-    double bInv = -b / det;
-    double txInv = -(a * tx + b * ty) / det;
-    double tyInv = (b * tx - a * ty) / det;
+    final aInv = a / det;
+    final bInv = -b / det;
+    final txInv = -(a * tx + b * ty) / det;
+    final tyInv = (b * tx - a * ty) / det;
 
     // For each pixel in the aligned image, find corresponding pixel in source
-    for (int y = 0; y < height; y++) {
-      for (int x = 0; x < width; x++) {
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
         // Apply inverse transform
-        double srcX = aInv * x - bInv * y + txInv;
-        double srcY = bInv * x + aInv * y + tyInv;
+        final srcX = aInv * x - bInv * y + txInv;
+        final srcY = bInv * x + aInv * y + tyInv;
 
         // Bilinear interpolation
         if (srcX >= 0 &&
             srcX < src.width - 1 &&
             srcY >= 0 &&
             srcY < src.height - 1) {
-          int x0 = srcX.floor();
-          int y0 = srcY.floor();
-          int x1 = x0 + 1;
-          int y1 = y0 + 1;
+          final x0 = srcX.floor();
+          final y0 = srcY.floor();
+          final x1 = x0 + 1;
+          final y1 = y0 + 1;
 
-          double dx = srcX - x0;
-          double dy = srcY - y0;
+          final dx = srcX - x0;
+          final dy = srcY - y0;
 
-          int r = _interpolate(
+          final r = _interpolate(
             src.getR(x0, y0),
             src.getR(x1, y0),
             src.getR(x0, y1),
@@ -145,7 +154,7 @@ class FaceAlignmentHelper {
             dx,
             dy,
           );
-          int g = _interpolate(
+          final g = _interpolate(
             src.getG(x0, y0),
             src.getG(x1, y0),
             src.getG(x0, y1),
@@ -153,7 +162,7 @@ class FaceAlignmentHelper {
             dx,
             dy,
           );
-          int blue = _interpolate(
+          final blue = _interpolate(
             src.getB(x0, y0),
             src.getB(x1, y0),
             src.getB(x0, y1),
@@ -201,9 +210,9 @@ class FaceAlignmentHelper {
     double dx,
     double dy,
   ) {
-    double v0 = v00 * (1 - dx) + v10 * dx;
-    double v1 = v01 * (1 - dx) + v11 * dx;
-    double v = v0 * (1 - dy) + v1 * dy;
+    final v0 = v00 * (1 - dx) + v10 * dx;
+    final v1 = v01 * (1 - dx) + v11 * dx;
+    final v = v0 * (1 - dy) + v1 * dy;
     return v.round().clamp(0, 255);
   }
 
@@ -212,7 +221,8 @@ class FaceAlignmentHelper {
   ) {
     if (landmarks.length != 5) {
       throw Exception(
-        'Expected exactly 5 landmarks: leftEye, rightEye, noseBase, leftMouth, rightMouth.',
+        'Expected exactly 5 landmarks: leftEye, rightEye, noseBase, '
+        'leftMouth, rightMouth.',
       );
     }
 
