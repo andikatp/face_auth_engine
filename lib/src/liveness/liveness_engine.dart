@@ -24,7 +24,36 @@ class LivenessEngine {
       resized = await _imageProvider.resize(face, 224, 224);
     }
 
-    // Calculate Laplacian score for blur detection
+    final brightness = brightnessScore(resized);
+
+    // ── Step 1: Low-light gate (runs BEFORE blur check)
+    // Dark images have low contrast → Laplacian would give a misleading
+    // "too blurry" rejection. By checking brightness first we surface the
+    // true reason to the caller.
+    if (_options.applyLowLightGate) {
+      developer.log(
+        'Brightness score: ${brightness.toStringAsFixed(1)} '
+        '(threshold: ${_options.lowLightThreshold})',
+      );
+
+      if (brightness < _options.lowLightThreshold) {
+        developer.log(
+          'Image rejected: too dark '
+          '(brightness=${brightness.toStringAsFixed(1)})',
+        );
+        sw.stop();
+        return LivenessResult(
+          isLive: false,
+          score: 0,
+          laplacian: 0,
+          duration: sw.elapsed,
+          rejectionReason: LivenessRejectionReason.lowLight,
+          brightness: brightness,
+        );
+      }
+    }
+
+    // ── Step 2: Laplacian blur gate
     final int laplacian;
     if (_options.applyLaplacianGate) {
       laplacian = laplacianScore(
@@ -43,30 +72,31 @@ class LivenessEngine {
     if (_options.applyLaplacianGate &&
         laplacian < _options.laplacianThreshold) {
       developer.log('Image rejected: too blurry (laplacian=$laplacian)');
+      sw.stop();
       return LivenessResult(
         isLive: false,
-        score: 0, // Definitely spoof if too blurry
+        score: 0,
         laplacian: laplacian,
-        duration: Duration.zero,
+        duration: sw.elapsed,
+        rejectionReason: LivenessRejectionReason.blurry,
+        brightness: brightness,
       );
     }
 
-    // Convert image to tensor with configured normalization
+    // ── Step 3: Convert image to tensor with configured normalization
     final input = toNHWC(resized, normalization: _options.normalizationType);
 
-    // Run inference
+    // ── Step 4: Run inference
     final rawProb = await _runner.inferProb(
       input,
       outputIndex: _options.outputIndex,
     );
 
-    // Convert to liveness probability
+    // ── Step 5: Convert to liveness probability
     final double liveProb;
     if (_options.outputIsSpoofProbability) {
-      // Model outputs spoof probability, invert it
       liveProb = 1.0 - rawProb;
     } else {
-      // Model outputs live probability directly
       liveProb = rawProb;
     }
 
@@ -76,15 +106,22 @@ class LivenessEngine {
     final duration = sw.elapsed;
 
     developer.log(
-      'Liveness: isLive=$isLive, liveProb=${liveProb.toStringAsFixed(3)}, '
-      'threshold=${_options.threshold}, duration=${duration.inMilliseconds}ms',
+      'Liveness: isLive=$isLive, '
+      'liveProb=${liveProb.toStringAsFixed(3)}, '
+      'threshold=${_options.threshold}, '
+      'brightness=${brightness.toStringAsFixed(1)}, '
+      'duration=${duration.inMilliseconds}ms',
     );
 
     return LivenessResult(
       isLive: isLive,
-      score: liveProb, // Now correctly represents liveness probability
+      score: liveProb,
       laplacian: laplacian,
       duration: duration,
+      rejectionReason: isLive
+          ? LivenessRejectionReason.none
+          : LivenessRejectionReason.spoof,
+      brightness: brightness,
     );
   }
 }

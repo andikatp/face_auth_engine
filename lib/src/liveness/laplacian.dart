@@ -2,6 +2,20 @@ import 'dart:typed_data';
 
 import 'package:face_auth_engine/src/image/face_image_provider.dart';
 
+/// Calculates mean luma (brightness) of the image.
+/// Returns a value in [0, 255]: 0 = totally black, 255 = totally white.
+/// Values below ~40 are considered low-light in typical selfie scenarios.
+double brightnessScore(FaceImageBuffer image) {
+  double sum = 0;
+  final bytes = image.pixels;
+  final pixelCount = image.width * image.height;
+  for (var i = 0, p = 0; i < pixelCount; i++, p += 3) {
+    // ITU-R BT.601 luma weights (integer approximation)
+    sum += (77 * bytes[p] + 150 * bytes[p + 1] + 29 * bytes[p + 2]) >> 8;
+  }
+  return sum / pixelCount;
+}
+
 /// Calculate Laplacian score for blur detection
 /// Higher score = sharper image
 int laplacianScore(

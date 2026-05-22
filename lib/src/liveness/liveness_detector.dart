@@ -63,20 +63,30 @@ class LivenessDetector {
   /// 2. Crop the face from the image
   /// 3. Run liveness analysis on the cropped face
   Future<LivenessResult> detectLiveness(File imageFile) async {
-    // 1. Detect face
+    // 1. Detect face (throws if no face or multiple faces)
     final faceResult = await faceDetector.detectFace(imageFile);
 
-    // 2. Decode full image
+    // 2. Decode full image (only if face detected)
     final fullImage = await imageProvider.loadImage(imageFile);
 
-    // 3. Crop face using bounding box from detection
+    // 3. Crop face safely using bounding box from detection
     final box = faceResult.boundingBox;
+
+    // Use rounding and clamp to image boundaries to prevent errors
+    final left = box.left.round().clamp(0, fullImage.width - 1);
+    final top = box.top.round().clamp(0, fullImage.height - 1);
+    final right = box.right.round().clamp(0, fullImage.width);
+    final bottom = box.bottom.round().clamp(0, fullImage.height);
+
+    final width = (right - left).clamp(1, fullImage.width);
+    final height = (bottom - top).clamp(1, fullImage.height);
+
     final croppedFace = await imageProvider.crop(
       fullImage,
-      box.left.toInt(),
-      box.top.toInt(),
-      box.width.toInt(),
-      box.height.toInt(),
+      left,
+      top,
+      width,
+      height,
     );
 
     // 4. Analyze

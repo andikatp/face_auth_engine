@@ -1,14 +1,29 @@
 import 'package:face_auth_engine/src/image/face_image_provider.dart';
 import 'package:face_auth_engine/src/liveness/liveness_options.dart';
 
-/// Convert image to NHWC tensor format with configurable normalization
-/// Returns a Float32List wrapped in NHWC shape for TFLite inference
+/// Convert image to NHWC tensor format with configurable normalization.
+/// Returns a Float32List wrapped in NHWC shape for TFLite inference.
 List<List<List<List<double>>>> toNHWC(
   FaceImageBuffer resized, {
   NormalizationType normalization = NormalizationType.centered,
 }) {
   final bytes = resized.pixels;
   var index = 0;
+
+  // Pre-compute adaptive range if needed
+  var adaptiveMin = 255;
+  var adaptiveMax = 0;
+  if (normalization == NormalizationType.adaptiveCentered) {
+    for (var p = 0; p < bytes.length; p++) {
+      final v = bytes[p];
+      if (v < adaptiveMin) adaptiveMin = v;
+      if (v > adaptiveMax) adaptiveMax = v;
+    }
+    // Avoid division by zero on a fully uniform image
+    if (adaptiveMax == adaptiveMin) adaptiveMax = adaptiveMin + 1;
+  }
+
+  final range = (adaptiveMax - adaptiveMin).toDouble();
 
   return [
     List.generate(
@@ -29,6 +44,12 @@ List<List<List<List<double>>>> toNHWC(
               (g - 127.5) / 127.5,
               (b - 127.5) / 127.5,
             ];
+          case NormalizationType.adaptiveCentered:
+            // Scale to [0, 1] relative to image's actual range, then to [-1, 1]
+            final rn = (r - adaptiveMin) / range * 2.0 - 1.0;
+            final gn = (g - adaptiveMin) / range * 2.0 - 1.0;
+            final bn = (b - adaptiveMin) / range * 2.0 - 1.0;
+            return [rn, gn, bn];
         }
       }),
     ),

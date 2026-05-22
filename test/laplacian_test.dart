@@ -23,6 +23,39 @@ void main() {
     return FaceImageBuffer(width: width, height: height, pixels: pixels);
   }
 
+  group('brightnessScore', () {
+    test('should return 0 for a totally black image', () {
+      final black = createTestImage(50, 50, (x, y) => 0);
+      expect(brightnessScore(black), closeTo(0.0, 0.5));
+    });
+
+    test('should return ~255 for a totally white image', () {
+      final white = createTestImage(50, 50, (x, y) => 255);
+      expect(brightnessScore(white), closeTo(255.0, 1.0));
+    });
+
+    test('should return ~128 for a medium grey image', () {
+      final grey = createTestImage(50, 50, (x, y) => 128);
+      expect(brightnessScore(grey), closeTo(128.0, 1.0));
+    });
+
+    test('should return higher score for brighter image', () {
+      final dark = createTestImage(50, 50, (x, y) => 30);
+      final bright = createTestImage(50, 50, (x, y) => 200);
+      expect(brightnessScore(bright), greaterThan(brightnessScore(dark)));
+    });
+
+    test('should detect low-light condition below threshold 40', () {
+      final lowLight = createTestImage(50, 50, (x, y) => 20);
+      expect(brightnessScore(lowLight), lessThan(40.0));
+    });
+
+    test('should detect sufficient lighting above threshold 40', () {
+      final normalLight = createTestImage(50, 50, (x, y) => 100);
+      expect(brightnessScore(normalLight), greaterThan(40.0));
+    });
+  });
+
   group('laplacianScore', () {
     test('should return higher score for sharp images', () {
       // Create a sharp image with high contrast edges
