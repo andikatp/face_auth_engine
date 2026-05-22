@@ -25,7 +25,6 @@ class FaceAuthEngine {
     FaceConfig? config,
   }) : config = config ?? FaceConfig.defaultConfig {
     _recognizer = FaceRecognizer();
-    unawaited(_initializeAsync());
   }
   final FaceConfig config;
   // Model sourced from third-party repository. See LICENSE section in README.
@@ -37,10 +36,6 @@ class FaceAuthEngine {
   final FaceImageProvider imageProvider;
   late FaceRecognizer _recognizer;
 
-  /// Initialize TFLite model.
-  Future<void> _initializeAsync() async {
-    await _loadModel();
-  }
 
   /// Load the TensorFlow Lite model.
   Future<void> _loadModel() async {
