@@ -13,6 +13,10 @@ enum LivenessRejectionReason {
   /// Surface: "Image blurry – please hold still."
   blurry,
 
+  /// Image is too bright/washed out.
+  /// Surface: "Too much light – please move to a shaded area."
+  overExposed,
+
   /// Model classified the face image as a spoof/attack.
   spoof,
 }
@@ -38,7 +42,8 @@ class LivenessResult {
   final double score;
 
   /// Laplacian sharpness score (higher = sharper image).
-  final int laplacian;
+  /// Null if the Laplacian gate was bypassed.
+  final int? laplacian;
 
   /// Processing duration.
   final Duration duration;
@@ -57,7 +62,7 @@ class LivenessResult {
     return 'LivenessResult('
         'isLive: $isLive, '
         'score: ${score.toStringAsFixed(3)}, '
-        'laplacian: $laplacian, '
+        'laplacian: ${laplacian ?? 'n/a'}, '
         'brightness: ${brightness?.toStringAsFixed(1) ?? 'n/a'}, '
         'rejectionReason: $rejectionReason, '
         'duration: ${duration.inMilliseconds}ms '

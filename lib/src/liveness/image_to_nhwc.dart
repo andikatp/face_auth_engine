@@ -5,7 +5,7 @@ import 'package:face_auth_engine/src/liveness/liveness_options.dart';
 /// Returns a Float32List wrapped in NHWC shape for TFLite inference.
 List<List<List<List<double>>>> toNHWC(
   FaceImageBuffer resized, {
-  NormalizationType normalization = NormalizationType.centered,
+  NormalizationType normalization = .centered,
 }) {
   final bytes = resized.pixels;
   var index = 0;
@@ -13,7 +13,7 @@ List<List<List<List<double>>>> toNHWC(
   // Pre-compute adaptive range if needed
   var adaptiveMin = 255;
   var adaptiveMax = 0;
-  if (normalization == NormalizationType.adaptiveCentered) {
+  if (normalization == .adaptiveCentered) {
     for (var p = 0; p < bytes.length; p++) {
       final v = bytes[p];
       if (v < adaptiveMin) adaptiveMin = v;
@@ -34,17 +34,17 @@ List<List<List<List<double>>>> toNHWC(
         final b = bytes[index++].toDouble();
 
         switch (normalization) {
-          case NormalizationType.scaled:
+          case .scaled:
             // x / 255.0 -> [0, 1]
             return [r / 255.0, g / 255.0, b / 255.0];
-          case NormalizationType.centered:
+          case .centered:
             // (x - 127.5) / 127.5 -> [-1, 1]
             return [
               (r - 127.5) / 127.5,
               (g - 127.5) / 127.5,
               (b - 127.5) / 127.5,
             ];
-          case NormalizationType.adaptiveCentered:
+          case .adaptiveCentered:
             // Scale to [0, 1] relative to image's actual range, then to [-1, 1]
             final rn = (r - adaptiveMin) / range * 2.0 - 1.0;
             final gn = (g - adaptiveMin) / range * 2.0 - 1.0;

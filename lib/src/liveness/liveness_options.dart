@@ -30,6 +30,8 @@ class LivenessOptions {
     this.warmUpIterations = 10,
     this.applyLowLightGate = true,
     this.lowLightThreshold = 40.0,
+    this.applyOverExposureGate = true,
+    this.overExposureThreshold = 220.0,
   });
 
   /// Use GPU for processing.
@@ -77,6 +79,15 @@ class LivenessOptions {
   /// Typical well-lit selfies score 80–160.
   final double lowLightThreshold;
 
+  /// Whether to apply the over-exposure gate before inference.
+  /// When enabled, images with mean luma above [overExposureThreshold] are
+  /// rejected with `LivenessRejectionReason.overExposed`.
+  final bool applyOverExposureGate;
+
+  /// Mean luma threshold (0–255) above which an image is considered too bright.
+  /// Default 220.0 maps to very bright/washed out images.
+  final double overExposureThreshold;
+
   @override
   String toString() {
     return 'LivenessOptions('
@@ -87,7 +98,9 @@ class LivenessOptions {
         'laplacianThreshold: $laplacianThreshold, '
         'normalizationType: $normalizationType, '
         'applyLowLightGate: $applyLowLightGate, '
-        'lowLightThreshold: $lowLightThreshold'
+        'lowLightThreshold: $lowLightThreshold, '
+        'applyOverExposureGate: $applyOverExposureGate, '
+        'overExposureThreshold: $overExposureThreshold'
         ')';
   }
 
@@ -106,7 +119,9 @@ class LivenessOptions {
         other.outputIsSpoofProbability == outputIsSpoofProbability &&
         other.warmUpIterations == warmUpIterations &&
         other.applyLowLightGate == applyLowLightGate &&
-        other.lowLightThreshold == lowLightThreshold;
+        other.lowLightThreshold == lowLightThreshold &&
+        other.applyOverExposureGate == applyOverExposureGate &&
+        other.overExposureThreshold == overExposureThreshold;
   }
 
   @override
@@ -123,5 +138,7 @@ class LivenessOptions {
     warmUpIterations,
     applyLowLightGate,
     lowLightThreshold,
+    applyOverExposureGate,
+    overExposureThreshold,
   );
 }

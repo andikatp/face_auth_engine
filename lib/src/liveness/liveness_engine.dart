@@ -24,7 +24,10 @@ class LivenessEngine {
       resized = await _imageProvider.resize(face, 224, 224);
     }
 
-    final brightness = brightnessScore(resized);
+    // Calculate brightness only if needed for gating or reporting
+    final needsBrightness =
+        _options.applyLowLightGate || _options.applyOverExposureGate;
+    final brightness = needsBrightness ? brightnessScore(resized) : 127.5;
 
     // ── Step 1: Low-light gate (runs BEFORE blur check)
     // Dark images have low contrast → Laplacian would give a misleading
@@ -53,8 +56,27 @@ class LivenessEngine {
       }
     }
 
+    // ── Step 1.1: Over-exposure gate
+    if (_options.applyOverExposureGate) {
+      if (brightness > _options.overExposureThreshold) {
+        developer.log(
+          'Image rejected: too bright '
+          '(brightness=${brightness.toStringAsFixed(1)})',
+        );
+        sw.stop();
+        return LivenessResult(
+          isLive: false,
+          score: 0,
+          laplacian: 0,
+          duration: sw.elapsed,
+          rejectionReason: .overExposed,
+          brightness: brightness,
+        );
+      }
+    }
+
     // ── Step 2: Laplacian blur gate
-    final int laplacian;
+    final int? laplacian;
     if (_options.applyLaplacianGate) {
       laplacian = laplacianScore(
         resized,
@@ -65,11 +87,12 @@ class LivenessEngine {
         '(threshold: ${_options.laplacianThreshold})',
       );
     } else {
-      laplacian = 999999; // Bypass
+      laplacian = null; // Bypass
     }
 
     // Early reject if image is too blurry
     if (_options.applyLaplacianGate &&
+        laplacian != null &&
         laplacian < _options.laplacianThreshold) {
       developer.log('Image rejected: too blurry (laplacian=$laplacian)');
       sw.stop();
@@ -78,7 +101,7 @@ class LivenessEngine {
         score: 0,
         laplacian: laplacian,
         duration: sw.elapsed,
-        rejectionReason: LivenessRejectionReason.blurry,
+        rejectionReason: .blurry,
         brightness: brightness,
       );
     }
@@ -118,9 +141,7 @@ class LivenessEngine {
       score: liveProb,
       laplacian: laplacian,
       duration: duration,
-      rejectionReason: isLive
-          ? LivenessRejectionReason.none
-          : LivenessRejectionReason.spoof,
+      rejectionReason: isLive ? .none : .spoof,
       brightness: brightness,
     );
   }
